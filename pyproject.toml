@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "radiacode"
+version = "0.1.0"
+description = "Library for RadiaCode-101"
+authors = ["Maxim Andreev <andreevmaxim@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/cdump/radiacode"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+]
+
+[tool.poetry.dependencies]
+python = "^3.6.1 || ^3.7"
+bluepy = "^1.3.0"
+pyusb = "^1.1.1"
+
+[tool.poetry.dev-dependencies]
+wemake-python-styleguide = "^0.15.2"
+jedi = "^0.18.0"
+mypy = "^0.812"
+pytest = "^6.2.4"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

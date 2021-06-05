@@ -1,0 +1,65 @@
+[isort]
+line_length = 79
+
+[flake8]
+max-line-length = 200
+
+max-imports = 16
+
+min-name-length = 1
+
+max-line-complexity = 24
+
+max-string-usages = 16
+
+max-local-variables = 25
+
+max-cognitive-score = 24
+
+max-cognitive-average = 24
+
+# magic methods includes
+max-methods = 30
+
+# function arguments
+max-arguments = 8
+
+max-expressions = 15
+
+max-tuple-unpack-length = 6
+
+allowed-domain-names = data
+
+ignore =
+    S101, # assert
+    D100, # Missing docstring in public module
+    D101, # Missing docstring in public class
+    D102, # Missing docstring in public method
+    D103, # Missing docstring in public function
+    D104, # Missing docstring in public package
+    D105, # Missing docstring in magic method
+    D107, # Missing docstring in __init__
+    DAR101, # Missing parameter(s) in Docstring
+    DAR201, # Missing "Returns" in Docstring
+
+    E800, # commented out code
+    N814, # camelcase imported as constant
+    WPS115, # upper-case constant in a class
+    WPS202, # too many module members
+    WPS218, # too many asserts, useful for tests/
+    WPS226, # Found string constant over-use
+    WPS301, # dotted raw import
+    WPS305, # f-strings
+    WPS306, # class without a base class
+    WPS317, # multilines
+    WPS318, # Found extra indentation
+    WPS323, # '%' strings, too many false-positives (strptime, ...)
+    WPS420, # allow 'pass' (but also 'global','local' & 'del')
+    WPS421, # allow 'print()' function
+    WPS602, # @staticmethod
+    S314, S405, # allow xml.etree.ElementTree
+
+    N802,   # function name should be lowercase
+    WPS114, # underscore in name
+    WPS336, # explicit string concat
+    WPS432, # magic numbers
