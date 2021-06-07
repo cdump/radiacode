@@ -28,9 +28,12 @@ class RadiaCode:
 
         # init
         self.execute(b'\x07\x00', b'\x01\xff\x12\xff')
-        # self.status()
-        # self.device_time(0)
-        # self.set_local_time(datetime.datetime.now())
+        self._base_time = datetime.datetime.now()
+        self.set_local_time(self._base_time)
+        self.device_time(0)
+
+    def base_time(self) -> datetime.datetime:
+        return self._base_time
 
     def execute(self, reqtype: bytes, args: bytes = None) -> BytesBuffer:
         assert len(reqtype) == 2
@@ -43,7 +46,7 @@ class RadiaCode:
 
         response = self._connection.execute(full_request)
         resp_header = response.unpack('<4s')[0]
-        assert req_header == resp_header, f'req={str(req_header)} resp={str(resp_header)}'
+        assert req_header == resp_header, f'req={req_header.hex()} resp={resp_header.hex()}'
         return response
 
     def read_request(self, command_id: Union[int, VS, VSFR]) -> BytesBuffer:
@@ -114,11 +117,11 @@ class RadiaCode:
 
     # called with 0 after init!
     def device_time(self, v: int) -> None:
-        self.write_request(VSFR.DEVICE_TIME, struct.pack('<H', v))
+        self.write_request(VSFR.DEVICE_TIME, struct.pack('<I', v))
 
     def data_buf(self) -> List[Union[CountRate, DoseRate, DoseRateDB, RareData, Event]]:
         r = self.read_request(VS.DATA_BUF)
-        return decode_VS_DATA_BUF(r)
+        return decode_VS_DATA_BUF(r, self._base_time)
 
     def spectrum(self) -> Spectrum:
         r = self.read_request(VS.SPECTRUM)

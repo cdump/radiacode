@@ -1,4 +1,6 @@
 import argparse
+import sys
+import time
 
 from radiacode import RadiaCode
 
@@ -24,8 +26,10 @@ def main():
     print('--------')
 
     print('### DataBuf:')
-    for v in rc.data_buf():
-        print(v)
+    while True:
+        for v in rc.data_buf():
+            print(v.dt.isoformat(), v)
+        time.sleep(2)
 
 
 if __name__ == '__main__':

@@ -1,8 +1,12 @@
 import struct
 
-from bluepy.btle import DefaultDelegate, Peripheral
+from bluepy.btle import BTLEDisconnectError, DefaultDelegate, Peripheral
 
 from radiacode.bytes_buffer import BytesBuffer
+
+
+class DeviceNotFound(Exception):
+    pass
 
 
 class Bluetooth(DefaultDelegate):
@@ -11,7 +15,11 @@ class Bluetooth(DefaultDelegate):
         self._resp_size = 0
         self._response = None
 
-        self.p = Peripheral(mac)
+        try:
+            self.p = Peripheral(mac)
+        except BTLEDisconnectError:
+            raise DeviceNotFound('Device not found or bluetooth adapter is not powered on')
+
         self.p.withDelegate(self)
 
         service = self.p.getServiceByUUID('e63215e5-7003-49d8-96b0-b024798fb901')

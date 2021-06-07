@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass
 from enum import Enum
 from typing import List
@@ -5,7 +6,7 @@ from typing import List
 
 @dataclass
 class CountRate:
-    timestamp: float
+    dt: datetime.datetime
     count: int
     count_rate: int
     flags: int
@@ -13,7 +14,7 @@ class CountRate:
 
 @dataclass
 class DoseRate:
-    timestamp: float
+    dt: datetime.datetime
     dose_rate: int
     dose_rate_err: int
     flags: int
@@ -21,7 +22,7 @@ class DoseRate:
 
 @dataclass
 class DoseRateDB:
-    timestamp: float
+    dt: datetime.datetime
     count: int
     count_rate: int
     dose_rate: int
@@ -31,7 +32,7 @@ class DoseRateDB:
 
 @dataclass
 class RareData:
-    timestamp: float
+    dt: datetime.datetime
     duration: int  # for dose, in seconds
     dose: int
     temperature: int
@@ -41,7 +42,7 @@ class RareData:
 
 @dataclass
 class Event:
-    timestamp: float
+    dt: datetime.datetime
     event: int
     event_param1: int
     flags: int
@@ -49,7 +50,7 @@ class Event:
 
 @dataclass
 class Spectrum:
-    timestamp: float
+    duration: datetime.timedelta
     a0: float
     a1: float
     a2: float

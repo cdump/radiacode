@@ -63,3 +63,4 @@ ignore =
     WPS114, # underscore in name
     WPS336, # explicit string concat
     WPS432, # magic numbers
+    WPS237, # too complex `f` string
