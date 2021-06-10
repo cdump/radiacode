@@ -10,7 +10,7 @@ class BytesBuffer:
         return len(self._data) - self._pos
 
     def data(self):
-        return self._data[self._pos:]
+        return self._data[self._pos :]
 
     def unpack(self, fmt):
         sz = struct.calcsize(fmt)

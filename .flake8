@@ -1,8 +1,5 @@
-[isort]
-line_length = 79
-
 [flake8]
-max-line-length = 200
+max-line-length = 130
 
 max-imports = 16
 

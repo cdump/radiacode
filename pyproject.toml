@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "radiacode"
-version = "0.1.0"
+version = "0.1.1"
 description = "Library for RadiaCode-101"
 authors = ["Maxim Andreev <andreevmaxim@gmail.com>"]
 license = "MIT"
@@ -11,18 +11,32 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3 :: Only",
 ]
+include = ["radiacode-examples/*"]
 
 [tool.poetry.dependencies]
-python = "^3.6.1 || ^3.7"
+python = "^3.6.2 || ^3.7"
 bluepy = "^1.3.0"
 pyusb = "^1.1.1"
+aiohttp = {version = "^3.7.4", optional = true}
 
 [tool.poetry.dev-dependencies]
 wemake-python-styleguide = "^0.15.2"
 jedi = "^0.18.0"
 mypy = "^0.812"
 pytest = "^6.2.4"
+black = "^21.5b2"
+
+[tool.poetry.extras]
+examples = ["aiohttp"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 130
+target-version = ["py36"]
+skip-string-normalization = true
+
+[tool.isort]
+line_length = 130

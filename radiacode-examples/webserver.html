@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>RadiaCode demo</title>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+</head>
+<style>
+#app > div {
+  margin: 5px auto;
+  width: 80%;
+  text-align: center;
+  padding: 5px;
+  border: 1px #aaa dashed;
+}
+</style>
+<body>
+<div id="app">
+  <div>
+    <apexchart type="bar" height="350" :options="spectrumChartOptions" :series="spectrum_series"></apexchart>
+    <button @click="updateSpectrum">Update spectrum</button>
+  </div>
+  <div>
+    <apexchart type="line" height="350" :options="ratesChartOptions" :series="rates_series"></apexchart>
+    <button @click="rates_autoupdate = !rates_autoupdate">Rates autoupdate: {{ rates_autoupdate ? "ON" : "OFF" }}</button>
+  </div>
+</div>
+
+<script>
+const common_options = {
+  chart: {
+    animations: {enabled: false},
+    zoom: {autoScaleYaxis: true},
+  },
+  dataLabels: {enabled: false},
+};
+var app = new Vue({
+  el: '#app',
+  components: {
+    apexchart: VueApexCharts,
+  },
+  data: function() {
+    return {
+      ws: null,
+      spectrum_duration: 0,
+      rates_autoupdate: true,
+      rates_series: [],
+      spectrum_series: [],
+      ratesChartOptions: {
+        ...common_options,
+        title: {text: 'CountRate & DoseRate'},
+        xaxis: {type: 'datetime'},
+        yaxis: [
+          {seriesName: 'countrate', decimalsInFloat: 2, title: {text: 'CPS'}, labels: {formatter:(v) => v.toFixed(4) + ' CPS'}},
+          {seriesName: 'doserate',  decimalsInFloat: 2, title: {text: 'μSv/h'}, labels: {formatter:(v) => v.toFixed(4) + ' μSv/h'}, opposite: true},
+        ],
+      },
+    };
+  },
+  computed: {
+    spectrumChartOptions() {
+      return{
+        ...common_options,
+        title: {text: `Spectrum, ${this.spectrum_duration} seconds`},
+        xaxis: {type: 'numeric', title: {text: 'keV'}},
+        // yaxis: {logarithmic: true},
+      };
+    },
+  },
+  created() {
+    this.ws = new WebSocket('ws://' + window.location.host + '/ws')
+    this.ws.onmessage = this.onmessage;
+    this.updateSpectrum();
+  },
+  beforeDestroy: function() {
+    this.ws.close();
+  },
+  methods: {
+    onmessage(ev) {
+      if (!this.rates_autoupdate) {
+        return;
+      }
+      const d = JSON.parse(ev.data);
+      this.rates_series = d.series;
+    },
+    updateSpectrum() {
+      fetch('/spectrum')
+        .then(response => response.json())
+        .then(data => (this.spectrum_duration=data.duration, this.spectrum_series=data.series));
+    },
+  },
+});
+</script>
+</body>
+</html>

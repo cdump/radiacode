@@ -41,7 +41,7 @@ class Bluetooth(DefaultDelegate):
 
     def execute(self, req) -> BytesBuffer:
         for pos in range(0, len(req), 18):
-            rp = req[pos:min(pos + 18, len(req))]
+            rp = req[pos : min(pos + 18, len(req))]
             self.p.writeCharacteristic(self.write_fd, rp)
 
         while self._response is None:

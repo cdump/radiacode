@@ -7,8 +7,7 @@ from radiacode.decoders.databuf import decode_VS_DATA_BUF
 from radiacode.decoders.spectrum import decode_RC_VS_SPECTRUM
 from radiacode.transports.bluetooth import Bluetooth
 from radiacode.transports.usb import Usb
-from radiacode.types import (CTRL, VS, VSFR, CountRate, DisplayDirection,
-                             DoseRate, DoseRateDB, Event, RareData, Spectrum)
+from radiacode.types import CTRL, VS, VSFR, CountRate, DisplayDirection, DoseRate, DoseRateDB, Event, RareData, Spectrum
 
 
 # channel number -> kEv
