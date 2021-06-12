@@ -126,6 +126,11 @@ class RadiaCode:
         r = self.read_request(VS.SPECTRUM)
         return decode_RC_VS_SPECTRUM(r)
 
+    # used in spectrum_channel_to_energy
+    def energy_calib(self) -> List[float]:
+        r = self.read_request(VS.ENERGY_CALIB)
+        return list(r.unpack('<fff'))
+
     def set_language(self, lang='ru') -> None:
         assert lang in {'ru', 'en'}, 'unsupported lang value - use "ru" or "en"'
         self.write_request(VSFR.DEVICE_LANG, struct.pack('<I', bool(lang == 'en')))
