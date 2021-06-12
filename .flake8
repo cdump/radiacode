@@ -61,3 +61,4 @@ ignore =
     WPS336, # explicit string concat
     WPS432, # magic numbers
     WPS237, # too complex `f` string
+    WPS229, # more than 1 line try block

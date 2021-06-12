@@ -16,8 +16,11 @@ $ python3 -m radiacode-examples.webserver --bluetooth-mac 52:43:01:02:03:04
 # или то же самое, но по usb
 $ sudo python3 -m radiacode-examples.webserver
 
-# или простой пример с выводом информации в терминал, опции аналогичны webserver
+# простой пример с выводом информации в терминал, опции аналогичны webserver
 $ python3 -m radiacode-examples.basic
+
+# отправка показания в народный мониторинг narodmon.ru
+$ python3 -m radiacode-examples.narodmon --bluetooth-mac 52:43:01:02:03:04
 ```
 
 ### Разработка
