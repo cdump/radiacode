@@ -15,16 +15,30 @@
   padding: 5px;
   border: 1px #aaa dashed;
 }
+#app fieldset {
+  display: inline-block;
+  border: 0;
+  padding: 0;
+  margin-left: 20px;
+}
 </style>
 <body>
 <div id="app">
   <div>
     <apexchart type="bar" height="350" :options="spectrumChartOptions" :series="spectrum_series"></apexchart>
     <div>
-      <input type="radio" id="spectrum_linear" v-bind:value="false" v-model="spectrum_logarithmic">
-      <label for="spectrum_linear">Linear</label>
-      <input type="radio" id="spectrum_log" v-bind:value="true" v-model="spectrum_logarithmic">
-      <label for="spectrum_log">Logarithmic</label>
+      <fieldset>
+        <input type="radio" id="spectrum_x_channel" v-bind:value="false" v-model="spectrum_energy">
+        <label for="spectrum_x_channel">Channel</label>
+        <input type="radio" id="spectrum_x_energy" v-bind:value="true" v-model="spectrum_energy">
+        <label for="spectrum_x_energy">Energy</label>
+      </fieldset>
+      <fieldset>
+        <input type="radio" id="spectrum_linear" v-bind:value="false" v-model="spectrum_logarithmic">
+        <label for="spectrum_linear">Linear</label>
+        <input type="radio" id="spectrum_log" v-bind:value="true" v-model="spectrum_logarithmic">
+        <label for="spectrum_log">Logarithmic</label>
+      </fieldset>
     </div>
     <button @click="updateSpectrum">Update spectrum</button>
   </div>
@@ -56,25 +70,31 @@ var app = new Vue({
       rates_autoupdate: true,
       rates_series: [],
       spectrum_series: [],
+      spectrum_coef: [0, 0, 0],
       spectrum_logarithmic: true,
+      spectrum_energy: true,
       ratesChartOptions: {
         ...common_options,
         title: {text: 'CountRate & DoseRate'},
         xaxis: {type: 'datetime'},
         yaxis: [
-          {seriesName: 'countrate', decimalsInFloat: 2, title: {text: 'CPS'}, labels: {formatter:(v) => v.toFixed(4) + ' CPS'}},
-          {seriesName: 'doserate',  decimalsInFloat: 2, title: {text: 'μSv/h'}, labels: {formatter:(v) => v.toFixed(4) + ' μSv/h'}, opposite: true},
+          {seriesName: 'countrate', title: {text: 'CPS'}, labels: {formatter:(v) => v.toFixed(2) + ' CPS'}},
+          {seriesName: 'doserate',  title: {text: 'μSv/h'}, labels: {formatter:(v) => v.toFixed(4) + ' μSv/h'}, opposite: true},
         ],
       },
     };
   },
   computed: {
     spectrumChartOptions() {
+      const a0 = this.spectrum_coef[0], a1 = this.spectrum_coef[1], a2 = this.spectrum_coef[2];
+      const fmt = this.spectrum_energy ? ((c) => (a0 + a1*c + a2*c*c).toFixed(0)) : undefined;
+      const title = this.spectrum_energy ? 'keV' : 'channel';
       return{
         ...common_options,
         title: {text: `Spectrum, ${this.spectrum_duration} seconds`},
-        xaxis: {type: 'numeric', title: {text: 'keV'}, tickAmount: 25},
+        xaxis: {type: 'numeric', title: {text: title}, tickAmount: 25, labels: {formatter:fmt}},
         yaxis: {logarithmic: this.spectrum_logarithmic, decimalsInFloat: 0},
+        plotOptions: {bar: {columnWidth: '95%'}},
       };
     },
   },
@@ -97,7 +117,7 @@ var app = new Vue({
     updateSpectrum() {
       fetch('/spectrum')
         .then(response => response.json())
-        .then(data => (this.spectrum_duration=data.duration, this.spectrum_series=data.series));
+        .then(data => (this.spectrum_duration=data.duration, this.spectrum_coef=data.coef, this.spectrum_series=data.series));
     },
   },
 });

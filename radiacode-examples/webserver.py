@@ -5,7 +5,7 @@ import pathlib
 
 from aiohttp import web
 
-from radiacode import CountRate, DoseRate, RadiaCode, spectrum_channel_to_energy
+from radiacode import CountRate, DoseRate, RadiaCode
 
 
 async def handle_index(request):
@@ -24,14 +24,15 @@ async def handle_ws(request):
 
 async def handle_spectrum(request):
     spectrum = request.app.rc_conn.spectrum()
+    # apexcharts can't handle 0 in logarithmic view
     spectrum_data = [
-        #  apexcharts can't handle 0 in logarithmic view
-        (int(spectrum_channel_to_energy(channel, spectrum.a0, spectrum.a1, spectrum.a2)), cnt if cnt > 0 else 0.5)
+        (channel, cnt if cnt > 0 else 0.5)
         for channel, cnt in enumerate(spectrum.counts)
     ]
     print('Spectrum updated')
     return web.json_response(
         {
+            'coef': [spectrum.a0, spectrum.a1, spectrum.a2],
             'duration': spectrum.duration.total_seconds(),
             'series': [{'name': 'spectrum', 'data': spectrum_data}],
         },
