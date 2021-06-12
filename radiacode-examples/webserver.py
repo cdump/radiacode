@@ -25,7 +25,8 @@ async def handle_ws(request):
 async def handle_spectrum(request):
     spectrum = request.app.rc_conn.spectrum()
     spectrum_data = [
-        (int(spectrum_channel_to_energy(channel, spectrum.a0, spectrum.a1, spectrum.a2)), cnt)
+        #  apexcharts can't handle 0 in logarithmic view
+        (int(spectrum_channel_to_energy(channel, spectrum.a0, spectrum.a1, spectrum.a2)), cnt if cnt > 0 else 0.5)
         for channel, cnt in enumerate(spectrum.counts)
     ]
     print('Spectrum updated')

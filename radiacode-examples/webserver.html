@@ -20,6 +20,12 @@
 <div id="app">
   <div>
     <apexchart type="bar" height="350" :options="spectrumChartOptions" :series="spectrum_series"></apexchart>
+    <div>
+      <input type="radio" id="spectrum_linear" v-bind:value="false" v-model="spectrum_logarithmic">
+      <label for="spectrum_linear">Linear</label>
+      <input type="radio" id="spectrum_log" v-bind:value="true" v-model="spectrum_logarithmic">
+      <label for="spectrum_log">Logarithmic</label>
+    </div>
     <button @click="updateSpectrum">Update spectrum</button>
   </div>
   <div>
@@ -34,6 +40,8 @@ const common_options = {
     animations: {enabled: false},
     zoom: {autoScaleYaxis: true},
   },
+  tooltip: {intersect: false},
+  grid: {xaxis: {lines: {show: true}}},
   dataLabels: {enabled: false},
 };
 var app = new Vue({
@@ -48,6 +56,7 @@ var app = new Vue({
       rates_autoupdate: true,
       rates_series: [],
       spectrum_series: [],
+      spectrum_logarithmic: true,
       ratesChartOptions: {
         ...common_options,
         title: {text: 'CountRate & DoseRate'},
@@ -64,8 +73,8 @@ var app = new Vue({
       return{
         ...common_options,
         title: {text: `Spectrum, ${this.spectrum_duration} seconds`},
-        xaxis: {type: 'numeric', title: {text: 'keV'}},
-        // yaxis: {logarithmic: true},
+        xaxis: {type: 'numeric', title: {text: 'keV'}, tickAmount: 25},
+        yaxis: {logarithmic: this.spectrum_logarithmic, decimalsInFloat: 0},
       };
     },
   },
