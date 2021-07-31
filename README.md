@@ -1,6 +1,7 @@
 ## RadiaCode
-This is a library for working with the radiation detector and spectrometer [RadiaCode-101](https://scan-electronics.com/dosimeters/radiacode/radiacode-101).
-It is under development, so the API is not stable and changes are possible.
+This is a library to work with the radiation detector and spectrometer [RadiaCode-101](https://scan-electronics.com/dosimeters/radiacode/radiacode-101).
+
+***The project is still under development and not stable. Thus, the API might change in the future.***
 
 Example project ([backend](radiacode-examples/webserver.py), [frontend](radiacode-examples/webserver.html)):
 ![radiacode-webserver-example](./screenshot.png)
