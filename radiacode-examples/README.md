@@ -1,6 +1,6 @@
 # RadiaCode Library - Examples
 
-These example projects are installed with the libary if you specify `pip install radiacode[examples]` (instead of `pip install radiacode`).
+These example projects are installed with the library if you specify `pip install radiacode[examples]` (instead of `pip install radiacode`).
 Each example project provides information when using the parameter `--help`.
 
 ### 1. [basic.py](./basic.py)
