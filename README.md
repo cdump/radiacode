@@ -1,4 +1,7 @@
 ## RadiaCode
+
+[Описание на русском языке](README_ru.md)
+
 This is a library to work with the radiation detector and spectrometer [RadiaCode-101](https://scan-electronics.com/dosimeters/radiacode/radiacode-101).
 
 ***The project is still under development and not stable. Thus, the API might change in the future.***
