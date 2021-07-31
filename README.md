@@ -8,7 +8,7 @@ Example project ([backend](radiacode-examples/webserver.py), [frontend](radiacod
 
 ### Installation and example projects
 ```
-# install together with all the dependencies for the examples, remove [examples] if you don't need them
+# install library together with all the dependencies for the examples, remove [examples] if you don't need them
 $ pip3 install 'radiacode[examples]' --upgrade
 
 # launch the webserver from the screenshot above
