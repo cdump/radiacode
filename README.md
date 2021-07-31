@@ -20,7 +20,7 @@ $ sudo python3 -m radiacode-examples.webserver
 # simple example for outputting information to the terminal, options are similar to the webserver example
 $ python3 -m radiacode-examples.basic
 
-# sending data to the public monitoring project narodmon.ru
+# send data to the public monitoring project narodmon.ru
 $ python3 -m radiacode-examples.narodmon --bluetooth-mac 52:43:01:02:03:04
 ```
 
