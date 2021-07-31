@@ -26,7 +26,7 @@ $ python3 -m radiacode-examples.narodmon --bluetooth-mac 52:43:01:02:03:04
 
 ### Development
 - install [python poetry](https://python-poetry.org/docs/#installation)
-- Clone this repository
+- clone this repository
 - install and run:
 ```
 $ poetry install
