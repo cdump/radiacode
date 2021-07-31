@@ -1,34 +1,33 @@
 ## RadiaCode
-Библиотека для работы с дозиметром [RadiaCode-101](https://scan-electronics.com/dosimeters/radiacode/radiacode-101), находится в разработке - API не стабилен и возможны изменения.
+This is a library for working with the radiation detector and spectrometer [RadiaCode-101] (https://scan-electronics.com/dosimeters/radiacode/radiacode-101).
+It is under development, so the API is not stable and changes are possible.
 
-Пример использования ([backend](radiacode-examples/webserver.py), [frontend](radiacode-examples/webserver.html)):
-![radiacode-webserver-example](./screenshot.png)
+Example project ([backend] (radiacode-examples/webserver.py), [frontend] (radiacode-examples/webserver.html)):
+! [radiacode-webserver-example] (./screenshot.png)
 
-### Установка & запуск примера
+### Installation and example projects
 ```
-# установка вместе с зависимостями для примеров, уберите [examples] если они вам не нужны
+# install together with all the dependencies for the examples, remove [examples] if you don't need them
 $ pip3 install 'radiacode[examples]' --upgrade
 
-# Запуск вебсервера из скриншота выше
-# bluetooth: замените на адрес вашего устройства
+# launch the webserver from the screenshot above
+# bluetooth: replace with the address of your device
 $ python3 -m radiacode-examples.webserver --bluetooth-mac 52:43:01:02:03:04
-
-# или то же самое, но по usb
+# or the same, but via usb
 $ sudo python3 -m radiacode-examples.webserver
 
-# простой пример с выводом информации в терминал, опции аналогичны webserver
+# simple example for outputting information to the terminal, options are similar to the webserver example
 $ python3 -m radiacode-examples.basic
 
-# отправка показания в народный мониторинг narodmon.ru
+# sending data to the public monitoring project narodmon.ru
 $ python3 -m radiacode-examples.narodmon --bluetooth-mac 52:43:01:02:03:04
 ```
 
-### Разработка
-- Установить [python poetry](https://python-poetry.org/docs/#installation)
-- Склонировать репозиторий, установить и запустить:
+### Development
+- install [python poetry] (https://python-poetry.org/docs/#installation)
+- Clone this repository
+- install and run:
 ```
-$ git clone https://github.com/cdump/radiacode.git
-$ cd radiacode
 $ poetry install
-$ poetry run python3 radiacode-examples/basic.py --bluetooth-mac 52:43:01:02:03:04  # или без --bluetooth-mac для USB подключения
+$ poetry run python3 radiacode-examples/basic.py --bluetooth-mac 52:43:01:02:03:04 # or without --bluetooth-mac for USB connection
 ```
