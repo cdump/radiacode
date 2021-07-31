@@ -1,9 +1,9 @@
 ## RadiaCode
-This is a library for working with the radiation detector and spectrometer [RadiaCode-101] (https://scan-electronics.com/dosimeters/radiacode/radiacode-101).
+This is a library for working with the radiation detector and spectrometer [RadiaCode-101](https://scan-electronics.com/dosimeters/radiacode/radiacode-101).
 It is under development, so the API is not stable and changes are possible.
 
-Example project ([backend] (radiacode-examples/webserver.py), [frontend] (radiacode-examples/webserver.html)):
-! [radiacode-webserver-example] (./screenshot.png)
+Example project ([backend](radiacode-examples/webserver.py), [frontend](radiacode-examples/webserver.html)):
+![radiacode-webserver-example](./screenshot.png)
 
 ### Installation and example projects
 ```
@@ -24,7 +24,7 @@ $ python3 -m radiacode-examples.narodmon --bluetooth-mac 52:43:01:02:03:04
 ```
 
 ### Development
-- install [python poetry] (https://python-poetry.org/docs/#installation)
+- install [python poetry](https://python-poetry.org/docs/#installation)
 - Clone this repository
 - install and run:
 ```
