@@ -38,7 +38,8 @@ def decode_VS_DATA_BUF(
                 )
             )
         elif eid == 0 and gid == 2:  # GRP_DoseRateDB
-            count, count_rate, dose_rate, dose_rate_err, flags = br.unpack('<HffHH')
+            count, count_rate, dose_rate, dose_rate_err, flags = br.unpack('<IffHH')
+            # ^ TODO: validate types, check values
             ret.append(
                 DoseRateDB(
                     dt=dt,
@@ -71,8 +72,17 @@ def decode_VS_DATA_BUF(
                     flags=flags,
                 )
             )
+        elif eid == 0 and gid == 8: # GRP_RawCountRate
+            count_rate, flags  = br.unpack('<fH')
+        elif eid == 0 and gid == 9: # GRP_RawDoseRate
+            dose_rate, flags  = br.unpack('<fH')
         elif eid == 1 and gid == 2:  # ???
-            br.unpack('34x')  # skip
+            if seq+1 == int(br._data[br._pos+34]):
+                br.unpack('34x')  # skip
+            elif seq+1 == int(br._data[br._pos+38]):
+                br.unpack('38x')  # skip
+            else:
+                raise Exception(f'Failed to find size for eid=1 & gid=2')
         elif eid == 1 and gid == 3:  # ???
             br.unpack('34x')  # skip
         else:
