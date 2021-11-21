@@ -20,6 +20,10 @@ def main():
     print(f'### Serial number: {serial}')
     print('--------')
 
+    fw_version = rc.fw_version()
+    print(f'### Firmware: {fw_version}')
+    print('--------')
+
     spectrum = rc.spectrum()
     print(f'### Spectrum: {spectrum}')
     print('--------')

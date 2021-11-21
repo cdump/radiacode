@@ -18,12 +18,12 @@ def decode_VS_DATA_BUF(
 
         next_seq = (seq + 1) % 256
         if eid == 0 and gid == 0:  # GRP_CountRate
-            count, count_rate, flags = br.unpack('<HfH')
+            count_rate, count_rate_err, flags = br.unpack('<fHH')
             ret.append(
                 CountRate(
                     dt=dt,
-                    count=count,
                     count_rate=count_rate,
+                    count_rate_err=count_rate_err * 0.1,
                     flags=flags,
                 )
             )
@@ -39,7 +39,6 @@ def decode_VS_DATA_BUF(
             )
         elif eid == 0 and gid == 2:  # GRP_DoseRateDB
             count, count_rate, dose_rate, dose_rate_err, flags = br.unpack('<IffHH')
-            # ^ TODO: validate types, check values
             ret.append(
                 DoseRateDB(
                     dt=dt,
@@ -62,6 +61,15 @@ def decode_VS_DATA_BUF(
                     flags=flags,
                 )
             )
+        elif eid == 0 and gid == 4:  # GRP_UserData:
+            count, count_rate, dose_rate, dose_rate_err, flags = br.unpack('<IffHH')
+            # TODO
+        elif eid == 0 and gid == 5:  # GRP_SheduleData
+            count, count_rate, dose_rate, dose_rate_err, flags = br.unpack('<IffHH')
+            # TODO
+        elif eid == 0 and gid == 6:  # GRP_AccelData
+            acc_x, acc_y, acc_z = br.unpack('<HHH')
+            # TODO
         elif eid == 0 and gid == 7:  # GRP_Event
             event, event_param1, flags = br.unpack('<BBH')
             ret.append(
@@ -72,19 +80,16 @@ def decode_VS_DATA_BUF(
                     flags=flags,
                 )
             )
-        elif eid == 0 and gid == 8: # GRP_RawCountRate
-            count_rate, flags  = br.unpack('<fH')
-        elif eid == 0 and gid == 9: # GRP_RawDoseRate
-            dose_rate, flags  = br.unpack('<fH')
-        elif eid == 1 and gid == 2:  # ???
-            if seq+1 == int(br._data[br._pos+34]):
-                br.unpack('34x')  # skip
-            elif seq+1 == int(br._data[br._pos+38]):
-                br.unpack('38x')  # skip
-            else:
-                raise Exception(f'Failed to find size for eid=1 & gid=2')
+        elif eid == 0 and gid == 8:  # GRP_RawCountRate
+            count_rate, flags = br.unpack('<fH')
+        elif eid == 0 and gid == 9:  # GRP_RawDoseRate
+            dose_rate, flags = br.unpack('<fH')
+        elif eid == 1 and gid == 2:
+            samples_num, smpl_time_ms = br.unpack('<HI')
+            br.unpack(f'<{16*samples_num}x')  # skip
         elif eid == 1 and gid == 3:  # ???
-            br.unpack('34x')  # skip
+            samples_num, smpl_time_ms = br.unpack('<HI')
+            br.unpack(f'<{14*samples_num}x')  # skip
         else:
             raise Exception(f'Uknown eid:{eid} gid:{gid}')
 

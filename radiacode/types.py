@@ -7,8 +7,8 @@ from typing import List
 @dataclass
 class CountRate:
     dt: datetime.datetime
-    count: int
-    count_rate: int
+    count_rate: float
+    count_rate_err: float  # %
     flags: int
 
 
@@ -24,9 +24,9 @@ class DoseRate:
 class DoseRateDB:
     dt: datetime.datetime
     count: int
-    count_rate: int
-    dose_rate: int
-    dose_rate_err: int
+    count_rate: float
+    dose_rate: float
+    dose_rate_err: float
     flags: int
 
 
@@ -34,9 +34,9 @@ class DoseRateDB:
 class RareData:
     dt: datetime.datetime
     duration: int  # for dose, in seconds
-    dose: int
-    temperature: int
-    charge_level: int
+    dose: float
+    temperature: float
+    charge_level: float
     flags: int
 
 
