@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 MQTT Pub script forward RadiaCode 101 data to MQTT server.
@@ -6,6 +7,9 @@ Then it may be used by smart home hubs like Home Assistant.
 """
 
 import argparse
+import dataclasses
+import datetime
+import json
 import logging
 import typing
 
@@ -16,14 +20,15 @@ from radiacode import RadiaCode
 logger = logging.getLogger(__name__)
 
 
-def send_ha_discovery(client: mqtt.Client, base_path: str, devid: str):
-    """Send discovery messages for Home Assistant"""
-    logger.info("Sending Home Assistant discovery messages")
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (datetime.date, datetime.datetime)):
+            return obj.isoformat()
 
 
-def setup_mqtt(args) -> typing.Tuple[mqtt.Client, str]:
+def setup_mqtt(args) -> typing.Tuple[mqtt.Client, str, str]:
     """Make a connection to MQTT Broker"""
-    devid = f"{args.bluetooth_mac or 'usb'}"
+    devid = (f"{args.bluetooth_mac or 'usb'}").replace(':', '').lower()
     client_id = f"radiacode-{devid}"
     base_path = f"{args.mqtt_topic_prefix}{devid}"
     lwt = f"{base_path}/LWT"
@@ -39,19 +44,23 @@ def setup_mqtt(args) -> typing.Tuple[mqtt.Client, str]:
 
         cli.publish(topic=lwt, payload='Online', qos=1, retain=True)
 
-        if args.home_assistant:
-            send_ha_discovery(cli, base_path, devid)
-
     client.on_connect = on_connect
 
     client.connect(args.mqtt_host, args.mqtt_port)
     client.loop_start()
 
-    return client, base_path
+    return client, devid, base_path
+
+
+def send_ha_discovery(client: mqtt.Client, rc: RadiaCode, base_path: str, devid: str):
+    """Send discovery messages for Home Assistant"""
+    logger.info("Sending Home Assistant discovery messages")
+
+    # TODO: send discovery for DoseRate, and maybe RareData to show Battery level.
 
 
 def main():
-    logging.basicConfig()
+    logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--bluetooth-mac', type=str, help='MAC address of radiascan device')
@@ -63,7 +72,25 @@ def main():
     parser.add_argument('--home-assistant', type=bool, help='Enable Home Assistant discovery messages')
     args = parser.parse_args()
 
-    client, base_path = setup_mqtt(args)
+    client, devid, base_path = setup_mqtt(args)
+
+    if args.bluetooth_mac:
+        logger.info(f'Will use Bluetooth connection: {args.bluetooth_mac}')
+        rc = RadiaCode(bluetooth_mac=args.bluetooth_mac)
+    else:
+        logger.info('Will use USB connection')
+        rc = RadiaCode()
+
+    if args.home_assistant:
+        send_ha_discovery(client, rc, base_path, devid)
+
+    while True:
+        for v in rc.data_buf():
+            topic = f"{base_path}/{v.__class__.__name__}"
+            payload = json.dumps(dataclasses.asdict(v), cls=DateTimeEncoder)
+
+            logger.info(f"Publish: {topic}: {payload}")
+            client.publish(topic=topic, payload=payload, qos=1, retain=True)
 
 
 if __name__ == '__main__':
