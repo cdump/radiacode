@@ -11,13 +11,15 @@ import dataclasses
 import datetime
 import json
 import logging
+import sys
+import threading
 import typing
 
 import paho.mqtt.client as mqtt
 
 from radiacode import RadiaCode
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('mqttpub')
 
 
 class DateTimeEncoder(json.JSONEncoder):
@@ -39,15 +41,22 @@ def setup_mqtt(args) -> typing.Tuple[mqtt.Client, str, str]:
 
     client.will_set(topic=lwt, payload='Offline', qos=1, retain=True)
 
+    event = threading.Event()
+
     def on_connect(cli: mqtt.Client, userdata, flags, rc):
         logger.info('Connected to MQTT broker')
 
+        event.set()
         cli.publish(topic=lwt, payload='Online', qos=1, retain=True)
 
     client.on_connect = on_connect
 
     client.connect(args.mqtt_host, args.mqtt_port)
     client.loop_start()
+
+    if not event.wait(30.0):
+        logger.critical("MQTT connection timeout.")
+        sys.exit(1)
 
     return client, devid, base_path
 
@@ -60,7 +69,7 @@ def send_ha_discovery(client: mqtt.Client, rc: RadiaCode, base_path: str, devid:
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(name)s\t%(message)s')
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--bluetooth-mac', type=str, help='MAC address of radiascan device')
@@ -72,8 +81,6 @@ def main():
     parser.add_argument('--home-assistant', type=bool, help='Enable Home Assistant discovery messages')
     args = parser.parse_args()
 
-    client, devid, base_path = setup_mqtt(args)
-
     if args.bluetooth_mac:
         logger.info(f'Will use Bluetooth connection: {args.bluetooth_mac}')
         rc = RadiaCode(bluetooth_mac=args.bluetooth_mac)
@@ -81,6 +88,7 @@ def main():
         logger.info('Will use USB connection')
         rc = RadiaCode()
 
+    client, devid, base_path = setup_mqtt(args)
     if args.home_assistant:
         send_ha_discovery(client, rc, base_path, devid)
 
