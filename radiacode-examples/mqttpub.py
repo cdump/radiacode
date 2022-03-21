@@ -11,6 +11,7 @@ import dataclasses
 import datetime
 import json
 import logging
+import os
 import sys
 import threading
 import typing
@@ -26,6 +27,24 @@ class DateTimeEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, (datetime.date, datetime.datetime)):
             return obj.isoformat()
+
+
+@dataclasses.dataclass
+class Watchdog:
+    timeout: float = 30.0
+    timer: typing.Optional[threading.Timer] = None
+
+    def on_timeout(self):
+        logger.critical("Watchdog timeout!")
+        # sys.exit(3)
+        os._exit(3)
+
+    def reset(self):
+        if self.timer:
+            self.timer.cancel()
+
+        self.timer = threading.Timer(self.timeout, self.on_timeout)
+        self.timer.start()
 
 
 def setup_mqtt(args) -> typing.Tuple[mqtt.Client, str, str]:
@@ -81,6 +100,8 @@ def main():
     parser.add_argument('--home-assistant', type=bool, help='Enable Home Assistant discovery messages')
     args = parser.parse_args()
 
+    wdt = Watchdog()
+
     if args.bluetooth_mac:
         logger.info(f'Will use Bluetooth connection: {args.bluetooth_mac}')
         rc = RadiaCode(bluetooth_mac=args.bluetooth_mac)
@@ -94,6 +115,8 @@ def main():
 
     while True:
         for v in rc.data_buf():
+            wdt.reset()
+
             topic = f"{base_path}/{v.__class__.__name__}"
             payload = json.dumps(dataclasses.asdict(v), cls=DateTimeEncoder)
 
