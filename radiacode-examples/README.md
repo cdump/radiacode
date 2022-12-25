@@ -22,3 +22,10 @@ Sends measurements to the service [public monitoring project narodmon.ru](https:
 ```
 $ python3 -m radiacode-examples.narodmon --bluetooth-mac 52:43:01:02:03:04
 ```
+
+### 3. [radiacode-exporter.py](./radiacode-exporter.py)
+Exports metrics for [prometheus](https://prometheus.io/)
+```
+$ python3 -m radiacode-examples.radiacode-exporter --bluetooth-mac 52:43:01:02:03:04 --port 5432
+$ curl http://127.0.0.1:5432/metrics
+```
