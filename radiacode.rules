@@ -1,2 +1,2 @@
 # Radiacode-10X radiation detector
-SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="f123", ATTRS{manufacturer}=="AngioScan", GROUP="plugdev", MODE="0660"
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="f123", ATTRS{manufacturer}=="AngioScan", TAG+="uaccess", MODE="0660"
