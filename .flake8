@@ -53,6 +53,7 @@ ignore =
     WPS323, # '%' strings, too many false-positives (strptime, ...)
     WPS420, # allow 'pass' (but also 'global','local' & 'del')
     WPS421, # allow 'print()' function
+    WPS454, # raise type: Exception
     WPS602, # @staticmethod
     S314, S405, # allow xml.etree.ElementTree
 
