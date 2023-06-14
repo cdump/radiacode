@@ -1,6 +1,6 @@
 import datetime
 import struct
-from typing import List, Union
+from typing import List, Optional, Union
 
 from radiacode.bytes_buffer import BytesBuffer
 from radiacode.decoders.databuf import decode_VS_DATA_BUF
@@ -18,7 +18,7 @@ def spectrum_channel_to_energy(channel_number: int, a0: float, a1: float, a2: fl
 class RadiaCode:
     _connection: Union[Bluetooth, Usb]
 
-    def __init__(self, bluetooth_mac: str = None):
+    def __init__(self, bluetooth_mac: Optional[str] = None):
         self._seq = 0
         if bluetooth_mac is not None:
             self._connection = Bluetooth(bluetooth_mac)
@@ -34,7 +34,7 @@ class RadiaCode:
     def base_time(self) -> datetime.datetime:
         return self._base_time
 
-    def execute(self, reqtype: bytes, args: bytes = None) -> BytesBuffer:
+    def execute(self, reqtype: bytes, args: Optional[bytes] = None) -> BytesBuffer:
         assert len(reqtype) == 2
         req_seq_no = 0x80 + self._seq
         self._seq = (self._seq + 1) % 32
@@ -64,7 +64,7 @@ class RadiaCode:
     def batch_read_vsfrs(self, vsfr_ids: List[VSFR]) -> List[int]:
         assert len(vsfr_ids)
         r = self.execute(b'\x2a\x08', b''.join(struct.pack('<I', int(c)) for c in vsfr_ids))
-        ret = [r.unpack('<I')[0] for _ in enumerate(vsfr_ids)]
+        ret = [r.unpack('<I')[0] for _ in range(len(vsfr_ids))]
         assert r.size() == 0
         return ret
 
@@ -72,7 +72,7 @@ class RadiaCode:
         r = self.execute(b'\x05\x00')
         flags = r.unpack('<I')
         assert r.size() == 0
-        return f'statuc flags: {flags}'
+        return f'status flags: {flags}'
 
     def set_local_time(self, dt: datetime.datetime) -> None:
         d = struct.pack('<BBBBBBBB', dt.day, dt.month, dt.year - 2000, 0, dt.second, dt.minute, dt.hour, 0)
