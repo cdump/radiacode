@@ -6,7 +6,8 @@ from radiacode.types import CountRate, DoseRate, DoseRateDB, Event, RareData
 
 
 def decode_VS_DATA_BUF(
-    br: BytesBuffer, base_time: datetime.datetime
+    br: BytesBuffer,
+    base_time: datetime.datetime,
 ) -> List[Union[CountRate, DoseRate, DoseRateDB, RareData, Event]]:
     ret: List[Union[CountRate, DoseRate, DoseRateDB, RareData, Event]] = []
     next_seq = None
