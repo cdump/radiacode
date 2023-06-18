@@ -99,12 +99,16 @@ class VSFR(Enum):
     def __int__(self) -> int:
         return self.value
 
-
 class VS(Enum):
     CONFIGURATION = 2
+    TEXT_MESSAGE = 15
     DATA_BUF = 256
     SPECTRUM = 512
     ENERGY_CALIB = 514
+    SPEC_ACCUM = 517
+    SPEC_DIFF = 518  # TODO: what's that? Can be decoded by spectrum decoder
+    # UNKNOWN_13 = 13
+    # UNKNOWN_240 = 240
 
     def __int__(self) -> int:
         return self.value

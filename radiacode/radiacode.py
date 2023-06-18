@@ -31,6 +31,12 @@ class RadiaCode:
         self.set_local_time(self._base_time)
         self.device_time(0)
 
+        self._spectrum_format_version = 0
+        for line in self.configuration().split('\n'):
+            if line.startswith('SpecFormatVersion'):
+                self._spectrum_format_version = int(line.split('=')[1])
+                break
+
     def base_time(self) -> datetime.datetime:
         return self._base_time
 
@@ -106,6 +112,10 @@ class RadiaCode:
         r = self.read_request(VS.CONFIGURATION)
         return r.data().decode('cp1251')
 
+    def text_message(self) -> str:
+        r = self.read_request(VS.TEXT_MESSAGE)
+        return r.data().decode('ascii')
+
     def serial_number(self) -> str:
         r = self.read_request(8)
         return r.data().decode('ascii')
@@ -124,7 +134,11 @@ class RadiaCode:
 
     def spectrum(self) -> Spectrum:
         r = self.read_request(VS.SPECTRUM)
-        return decode_RC_VS_SPECTRUM(r)
+        return decode_RC_VS_SPECTRUM(r, self._spectrum_format_version)
+
+    def spectrum_accum(self) -> Spectrum:
+        r = self.read_request(VS.SPEC_ACCUM)
+        return decode_RC_VS_SPECTRUM(r, self._spectrum_format_version)
 
     # used in spectrum_channel_to_energy
     def energy_calib(self) -> List[float]:
