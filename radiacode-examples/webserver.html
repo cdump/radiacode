@@ -28,8 +28,13 @@
     <apexchart type="bar" height="350" :options="spectrumChartOptions" :series="spectrum_series"></apexchart>
     <div>
       <fieldset>
+        <input type="checkbox" id="spectrum_x_accum" v-model="spectrum_accum">
+        <label for="spectrum_x_accum">Accumulated</label>
+      </fieldset>
+      <fieldset>
         <input type="radio" id="spectrum_x_channel" v-bind:value="false" v-model="spectrum_energy">
         <label for="spectrum_x_channel">Channel</label>
+
         <input type="radio" id="spectrum_x_energy" v-bind:value="true" v-model="spectrum_energy">
         <label for="spectrum_x_energy">Energy</label>
       </fieldset>
@@ -69,6 +74,7 @@ var app = new Vue({
       spectrum_duration: 0,
       rates_autoupdate: true,
       rates_series: [],
+      spectrum_accum: false,
       spectrum_series: [],
       spectrum_coef: [0, 0, 0],
       spectrum_logarithmic: true,
@@ -83,6 +89,11 @@ var app = new Vue({
         ],
       },
     };
+  },
+  watch: {
+    spectrum_accum() {
+      this.updateSpectrum();
+    }
   },
   computed: {
     spectrumChartOptions() {
@@ -115,7 +126,7 @@ var app = new Vue({
       this.rates_series = d.series;
     },
     updateSpectrum() {
-      fetch('/spectrum')
+      fetch(`/spectrum?accum=${this.spectrum_accum}`)
         .then(response => response.json())
         .then(data => (this.spectrum_duration=data.duration, this.spectrum_coef=data.coef, this.spectrum_series=data.series));
     },

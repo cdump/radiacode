@@ -23,7 +23,9 @@ async def handle_ws(request):
 
 
 async def handle_spectrum(request):
-    spectrum = request.app.rc_conn.spectrum()
+    cn = request.app.rc_conn
+    accum = request.query.get('accum') == 'true'
+    spectrum = cn.spectrum_accum() if accum else cn.spectrum()
     # apexcharts can't handle 0 in logarithmic view
     spectrum_data = [
         (channel, cnt if cnt > 0 else 0.5)
