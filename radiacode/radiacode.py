@@ -162,7 +162,7 @@ class RadiaCode:
 
     def set_display_direction(self, direction: DisplayDirection) -> None:
         assert isinstance(direction, DisplayDirection)
-        self.write_request(VSFR.DISP_DR, struct.pack('<I', int(direction)))
+        self.write_request(VSFR.DISP_DIR, struct.pack('<I', int(direction)))
 
     def set_vibro_ctrl(self, ctrls: List[CTRL]) -> None:
         flags = 0

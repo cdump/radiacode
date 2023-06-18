@@ -76,7 +76,7 @@ class VSFR(Enum):
     DISP_CONTR = 1298
     DISP_OFF_TIME = 1299
     DISP_ON = 1300
-    DISP_DR = 1301
+    DISP_DIR = 1301
     SOUND_CTRL = 1312
     SOUND_VOL = 1313
     SOUND_ON = 1314
