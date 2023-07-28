@@ -46,6 +46,7 @@
       </fieldset>
     </div>
     <button @click="updateSpectrum">Update spectrum</button>
+    <button @click="resetSpectrum">Reset spectrum</button>
   </div>
   <div>
     <apexchart type="line" height="350" :options="ratesChartOptions" :series="rates_series"></apexchart>
@@ -129,6 +130,10 @@ var app = new Vue({
       fetch(`/spectrum?accum=${this.spectrum_accum}`)
         .then(response => response.json())
         .then(data => (this.spectrum_duration=data.duration, this.spectrum_coef=data.coef, this.spectrum_series=data.series));
+    },
+    resetSpectrum() {
+      fetch(`/spectrum/reset`, {method: 'POST'})
+        .then(r => this.updateSpectrum());
     },
   },
 });

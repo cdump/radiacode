@@ -61,7 +61,7 @@ class RadiaCode:
         assert r.size() == flen
         return r
 
-    def write_request(self, command_id: Union[int, VSFR], data: bytes) -> None:
+    def write_request(self, command_id: Union[int, VSFR], data: Optional[bytes] = None) -> None:
         r = self.execute(b'\x25\x08', struct.pack('<I', int(command_id)) + (data or b''))
         retcode = r.unpack('<I')[0]
         assert retcode == 1
@@ -139,6 +139,15 @@ class RadiaCode:
     def spectrum_accum(self) -> Spectrum:
         r = self.read_request(VS.SPEC_ACCUM)
         return decode_RC_VS_SPECTRUM(r, self._spectrum_format_version)
+
+    def dose_reset(self) -> None:
+        self.write_request(VSFR.DOSE_RESET)
+
+    def spectrum_reset(self) -> None:
+        r = self.execute(b'\x27\x08', struct.pack('<II', int(VS.SPECTRUM), 0))
+        retcode = r.unpack('<I')[0]
+        assert retcode == 1
+        assert r.size() == 0
 
     # used in spectrum_channel_to_energy
     def energy_calib(self) -> List[float]:

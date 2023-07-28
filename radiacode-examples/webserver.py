@@ -40,6 +40,11 @@ async def handle_spectrum(request):
         },
     )
 
+async def handle_spectrum_reset(request):
+    cn = request.app.rc_conn
+    cn.spectrum_reset()
+    print('Spectrum reset')
+    return web.json_response({})
 
 async def process(app):
     max_history_size = 128
@@ -99,6 +104,7 @@ if __name__ == '__main__':
         [
             web.get('/', handle_index),
             web.get('/spectrum', handle_spectrum),
+            web.post('/spectrum/reset', handle_spectrum_reset),
             web.get('/ws', handle_ws),
         ],
     )

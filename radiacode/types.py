@@ -95,6 +95,7 @@ class VSFR(Enum):
     MS_MODE = 1537
     MS_SUB_MODE = 1538
     MS_RUN = 1539
+    DOSE_RESET = 32775
 
     def __int__(self) -> int:
         return self.value
@@ -107,6 +108,7 @@ class VS(Enum):
     ENERGY_CALIB = 514
     SPEC_ACCUM = 517
     SPEC_DIFF = 518  # TODO: what's that? Can be decoded by spectrum decoder
+    SPEC_RESET = 519 # TODO: looks like spectrum, but our spectrum decoder fails with `vlen == 7 unsupported`
     # UNKNOWN_13 = 13
     # UNKNOWN_240 = 240
 
