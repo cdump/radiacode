@@ -9,8 +9,11 @@ class DeviceNotFound(Exception):
     pass
 
 class MultipleUSBReadFailure(Exception):
-    pass
+    """Raised when max. number of USB read failues reached"""
 
+    def __init__(self, message = None):
+        self.message = "Multiple USB Read Failues" if message is None else message
+        super().__init__(self.message)
 
 class Usb:
     def __init__(self, timeout_ms=3000):
@@ -29,18 +32,22 @@ class Usb:
 
         trials = 0
         max_trials = 10
-        while trials < max_trials:
-            try: 
-                data = self._device.read(0x81, 256, timeout=self._timeout_ms).tobytes()
+        while trials <= max_trials:
+            try:
+                while True:
+                    data = self._device.read(0x81, 256, timeout=self._timeout_ms).tobytes()
+                    if len(data) != 0:
+                        break
                 response_length = struct.unpack_from('<I', data)[0]
                 data = data[4:]
                 break
             except Exception as e:
                 trials += 1
-                print(trials, "USB read error: ", e)
-                continue
-        if trials >= max_trials:
-            raise MultipleUSBReadFailure
+                print(trials, "USB read error: ", e) #! debug
+                if trials == max_trials:
+                    raise MultipleUSBReadFailure
+                else:
+                    continue
             
         while len(data) < response_length:
             r = self._device.read(0x81, response_length - len(data)).tobytes()
