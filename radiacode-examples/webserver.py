@@ -16,7 +16,7 @@ async def handle_ws(request):
     ws = web.WebSocketResponse()
     await ws.prepare(request)
     request.app.ws_clients.append(ws)
-    async for _ in ws:  # noqa: WPS328
+    async for _ in ws:
         pass
     request.app.ws_clients.remove(ws)
     return ws
@@ -27,10 +27,7 @@ async def handle_spectrum(request):
     accum = request.query.get('accum') == 'true'
     spectrum = cn.spectrum_accum() if accum else cn.spectrum()
     # apexcharts can't handle 0 in logarithmic view
-    spectrum_data = [
-        (channel, cnt if cnt > 0 else 0.5)
-        for channel, cnt in enumerate(spectrum.counts)
-    ]
+    spectrum_data = [(channel, cnt if cnt > 0 else 0.5) for channel, cnt in enumerate(spectrum.counts)]
     print('Spectrum updated')
     return web.json_response(
         {
@@ -40,16 +37,18 @@ async def handle_spectrum(request):
         },
     )
 
+
 async def handle_spectrum_reset(request):
     cn = request.app.rc_conn
     cn.spectrum_reset()
     print('Spectrum reset')
     return web.json_response({})
 
+
 async def process(app):
     max_history_size = 128
     countrate_history, doserate_history = [], []
-    while True:  # noqa: WPS457
+    while True:
         databuf = app.rc_conn.data_buf()
         for v in databuf:
             if isinstance(v, CountRate):
