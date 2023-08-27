@@ -27,6 +27,14 @@ jobs:
       run: |
         poetry install
 
+    - name: Run ruff
+      run: |
+        poetry run ruff radiacode radiacode-examples
+
+    - name: Run black
+      run: |
+        poetry run black --check radiacode radiacode-examples
+
     - name: Build wheel
       id: build
       run: |

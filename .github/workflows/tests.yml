@@ -1,0 +1,33 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.11']
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python
+        echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+
+    - name: Ruff and Black
+      run: |
+        poetry install --only=dev
+        poetry run ruff radiacode radiacode-examples
+        poetry run black --check radiacode radiacode-examples
+
+    # TODO
+    # - name: Run tests
+    #   run: |
+    #     poetry run pytest -ra -v
