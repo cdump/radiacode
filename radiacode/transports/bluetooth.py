@@ -17,8 +17,8 @@ class Bluetooth(DefaultDelegate):
 
         try:
             self.p = Peripheral(mac)
-        except BTLEDisconnectError:
-            raise DeviceNotFound('Device not found or bluetooth adapter is not powered on')
+        except BTLEDisconnectError as ex:
+            raise DeviceNotFound('Device not found or bluetooth adapter is not powered on') from ex
 
         self.p.withDelegate(self)
 
