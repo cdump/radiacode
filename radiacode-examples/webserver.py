@@ -27,10 +27,7 @@ async def handle_spectrum(request):
     accum = request.query.get('accum') == 'true'
     spectrum = cn.spectrum_accum() if accum else cn.spectrum()
     # apexcharts can't handle 0 in logarithmic view
-    spectrum_data = [
-        (channel, cnt if cnt > 0 else 0.5)
-        for channel, cnt in enumerate(spectrum.counts)
-    ]
+    spectrum_data = [(channel, cnt if cnt > 0 else 0.5) for channel, cnt in enumerate(spectrum.counts)]
     print('Spectrum updated')
     return web.json_response(
         {
@@ -40,11 +37,13 @@ async def handle_spectrum(request):
         },
     )
 
+
 async def handle_spectrum_reset(request):
     cn = request.app.rc_conn
     cn.spectrum_reset()
     print('Spectrum reset')
     return web.json_response({})
+
 
 async def process(app):
     max_history_size = 128

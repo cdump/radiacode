@@ -55,9 +55,7 @@ def plot_RC102Spectrum():
     # parse command line arguments
     # ------
     parser = argparse.ArgumentParser(description='read and display spectrum from RadioCode 102')
-    parser.add_argument(
-        '--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of radiascan device'
-    )
+    parser.add_argument('--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of radiascan device')
     parser.add_argument(
         '-n',
         '--noreset',
