@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
-"""script readRC102
+"""script readRC102 (source: https://github.com/cdump/radiacode/pull/14/commits)
 
-  Read spectrum data from Radiacode 102 device and displays the rate 
+  Read spectrum data from Radiacode 102 device and displays the rate
   and cumulated conts of deposited energies as a histogram
 
   Calculates and displays:
@@ -11,9 +11,15 @@
    - dose:    energy deposit in crystal, sum(counts*energies).
 """
 
-import sys, argparse
-import time, datetime
-import numpy as np, matplotlib as mpl, matplotlib.pyplot as plt
+import argparse
+import sys
+import time
+
+# import matplotlib
+# matplotlib.use('GTK3Cairo')
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from radiacode import RadiaCode
 
@@ -48,7 +54,7 @@ def plot_RC102Spectrum():
     # ------
     # parse command line arguments
     # ------
-    parser = argparse.ArgumentParser(description="read and display spectrum from RadioCode 102")
+    parser = argparse.ArgumentParser(description='read and display spectrum from RadioCode 102')
     parser.add_argument(
         '--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of radiascan device'
     )
@@ -64,7 +70,7 @@ def plot_RC102Spectrum():
     args = parser.parse_args()
 
     bluetooth_mac = args.bluetooth_mac
-    reset_spectrum = True if args.noreset == False else False
+    reset_spectrum = not args.noreset
     interval = args.interval
 
     # ------
@@ -102,7 +108,7 @@ def plot_RC102Spectrum():
     # # plot data
     # -------
     # figure with two sub-plot
-    fig = plt.figure("Gamma Spectrum", figsize=(8.0, 6.0))
+    fig = plt.figure('Gamma Spectrum', figsize=(8.0, 6.0))
     fig.suptitle('Radiacode Spectrum   ' + time.asctime(), size='large', color='b')
     fig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.85, wspace=None, hspace=0.25)  #
     gs = fig.add_gridspec(nrows=4, ncols=1)
@@ -155,7 +161,7 @@ def plot_RC102Spectrum():
     plt.show()
 
     # start read-out loop
-    toggle = ['  \ ', '  | ', '  / ', '  - ']
+    toggle = ['  \\ ', '  | ', '  / ', '  - ']
     itoggle = 0
     print()
     time.sleep(interval)

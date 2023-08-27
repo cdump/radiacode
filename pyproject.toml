@@ -19,6 +19,7 @@ bluepy = "^1.3"
 pyusb = "^1.2"
 aiohttp = {version = "^3.8", optional = true}
 prometheus-client = {version = "^0.17", optional = true}
+matplotlib = {version = "^3.7", optional = true}
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.0.283"
@@ -26,7 +27,7 @@ mypy = "^1.5"
 black = "^23.7"
 
 [tool.poetry.extras]
-examples = ["aiohttp", "prometheus-client"]
+examples = ["aiohttp", "prometheus-client", "matplotlib"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
