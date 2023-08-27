@@ -8,6 +8,12 @@ from radiacode.bytes_buffer import BytesBuffer
 class DeviceNotFound(Exception):
     pass
 
+class MultipleUSBReadFailure(Exception):
+    """Raised when max. number of USB read failues reached"""
+
+    def __init__(self, message = None):
+        self.message = "Multiple USB Read Failures" if message is None else message
+        super().__init__(self.message)
 
 class Usb:
     def __init__(self, timeout_ms=3000):
@@ -24,7 +30,18 @@ class Usb:
     def execute(self, request: bytes) -> BytesBuffer:
         self._device.write(0x1, request)
 
-        data = self._device.read(0x81, 256, timeout=self._timeout_ms).tobytes()
+        trials = 0
+        max_trials = 3
+        while trials < max_trials:  # repeat until non-zero lenght data received
+            data = self._device.read(0x81, 256, timeout=self._timeout_ms).tobytes()
+            if len(data) != 0:
+                break
+            else:
+                trials += 1
+                # print("\n !!! usb.read failed, trials= ", trials, '  ')
+        if trials >= max_trials:
+            raise MultipleUSBReadFailure( str(trials) + ' USB Read Failures in sequence' )
+
         response_length = struct.unpack_from('<I', data)[0]
         data = data[4:]
 
