@@ -180,7 +180,7 @@ class RadiaCode:
         self.write_request(VSFR.DISP_OFF_TIME, struct.pack('<I', v))
 
     def set_display_brightness(self, brightness: int) -> None:
-        assert 0 <= brightness and brightness <= 9  # noqa: WPS309, WPS333
+        assert 0 <= brightness and brightness <= 9
         self.write_request(VSFR.DISP_BRT, struct.pack('<I', brightness))
 
     def set_display_direction(self, direction: DisplayDirection) -> None:

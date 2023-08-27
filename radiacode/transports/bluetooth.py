@@ -27,7 +27,7 @@ class Bluetooth(DefaultDelegate):
         notify_fd = service.getCharacteristics('e63215e7-7003-49d8-96b0-b024798fb901')[0].getHandle()
         self.p.writeCharacteristic(notify_fd + 1, b'\x01\x00')
 
-    def handleNotification(self, chandle, data):  # noqa: N802
+    def handleNotification(self, chandle, data):
         if self._resp_size == 0:
             self._resp_size = 4 + struct.unpack('<i', data[:4])[0]
             self._resp_buffer = data[4:]
