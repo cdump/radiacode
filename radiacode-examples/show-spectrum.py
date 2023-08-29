@@ -27,7 +27,8 @@ from radiacode import RadiaCode
 rho_CsJ = 4.51  # density of CsJ in g/cm^3
 m_sensor = rho_CsJ * 1e-3  # Volume is 1 cm^3, mass in kg
 keV2J = 1.602e-16
-depositedE2dose = keV2J * 3600 * 1e6 / m_sensor  # dose rate in µGy/h
+depositedE2doserate = keV2J * 3600 * 1e6 / m_sensor  # dose rate in µGy/h
+depositedE2dose = keV2J * 1e6 / m_sensor  # dose rate in µGy/h
 
 
 def plot_RC102Spectrum():
@@ -108,7 +109,7 @@ def plot_RC102Spectrum():
     # figure with two sub-plot
     fig = plt.figure('Gamma Spectrum', figsize=(8.0, 6.0))
     fig.suptitle('Radiacode Spectrum   ' + time.asctime(), size='large', color='b')
-    fig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.85, wspace=None, hspace=0.25)  #
+    fig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.85, wspace=None, hspace=0.05)  #
     gs = fig.add_gridspec(nrows=4, ncols=1)
     # define subplots
     axE = fig.add_subplot(gs[:-1, :])
@@ -118,6 +119,7 @@ def plot_RC102Spectrum():
     plt.locator_params(axis='x', nbins=12)
     axE.grid(linestyle='dotted', which='both')
     axE.set_yscale('log')
+    axE.set_xticklabels([])
     # second x-axis for channels
     axC = axE.secondary_xaxis('top', functions=(En2Chan, Chan2En))
     axC.set_xlabel('Channel #')
@@ -154,6 +156,15 @@ def plot_RC102Spectrum():
         # backgroundcolor='white',
         alpha=0.7,
     )
+    text_statistics2 = axEdiff.text(
+        0.75,
+        0.66,
+        '     ',
+        transform=axEdiff.transAxes,
+        color='darkblue',
+        # backgroundcolor='white',
+        alpha=0.7,
+    )
     # plot in non-blocking mode
     plt.ion()  # interactive mode, non-blocking
     plt.show()
@@ -162,26 +173,28 @@ def plot_RC102Spectrum():
     toggle = ['  \\ ', '  | ', '  / ', '  - ']
     itoggle = 0
     print()
-    time.sleep(interval)
+    time.sleep(interval - time.time() + T0)
     while True:
         t = time.time()
         dt = t - t0  # last time interval
         t0 = t
-        dT = int(10 * (t - T0)) / 10  # active time in units of 1/10 s
+        dT = int(10 * (t - T0)) / 10  # active time rounded to 0.1s
         spectrum = rc.spectrum()
         counts = np.asarray(spectrum.counts)
         if not any(counts):
             time.sleep(interval)
             print('       active:', dT, 's', ' !!! waiting for data', end='\r')
             continue
-        counts_diff = (counts - counts0) / dt
+        counts_diff = (counts - counts0)
         counts0[:] = counts
         # some statistics
         countsum = np.sum(counts)
-        rate = (countsum - countsum0) / dt
+        rate = (countsum - countsum0) / interval
+        depE = np.sum(counts_diff * Energies)  # in keV
+        doserate = depE * depositedE2doserate / interval
         # dose in µGy/h = µJ/(kg*h)
         deposited_energy = np.sum(counts * Energies)  # in keV
-        dose = deposited_energy * depositedE2dose / dT
+        total_dose = deposited_energy * depositedE2dose
         countsum0 = countsum
         # update graphics
         line.set_ydata(counts)
@@ -192,15 +205,16 @@ def plot_RC102Spectrum():
         axEdiff.autoscale_view()
 
         text_active.set_text('active: ' + str(dT) + 's')
-        text_statistics.set_text(f'counts: {countsum:.5g} \n' + f'rate: {rate:.3g} Hz\n' + f'dose: {dose:.3g} µGy/h')
+        text_statistics.set_text(f'counts: {countsum:.5g} \n' + f'dose: {total_dose:.3g} µGy')
+        text_statistics2.set_text(f'rate: {rate:.3g} Hz\n' + f'dose: {doserate:.3g} µGy/h')
         fig.canvas.draw_idle()
-        fig.canvas.start_event_loop(interval)
+        fig.canvas.start_event_loop(max(0, 2 * interval - dt ))
         print(
             toggle[itoggle],
             ' active:',
             dT,
             's  ',
-            f'counts: {countsum:.5g}, rate: {rate:.3g} Hz, dose: {dose:.3g} µGy/h',
+            f'counts: {countsum:.5g}, rate: {rate:.3g} Hz, dose: {doserate:.3g} µGy/h',
             15 * ' ',
             end='\r',
         )
