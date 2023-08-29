@@ -185,7 +185,7 @@ def plot_RC102Spectrum():
             time.sleep(interval)
             print('       active:', dT, 's', ' !!! waiting for data', end='\r')
             continue
-        counts_diff = (counts - counts0)
+        counts_diff = counts - counts0
         counts0[:] = counts
         # some statistics
         countsum = np.sum(counts)
@@ -208,7 +208,7 @@ def plot_RC102Spectrum():
         text_statistics.set_text(f'counts: {countsum:.5g} \n' + f'dose: {total_dose:.3g} µGy')
         text_statistics2.set_text(f'rate: {rate:.3g} Hz\n' + f'dose: {doserate:.3g} µGy/h')
         fig.canvas.draw_idle()
-        fig.canvas.start_event_loop(max(0, 2 * interval - dt ))
+        fig.canvas.start_event_loop(max(0, 2 * interval - dt))
         print(
             toggle[itoggle],
             ' active:',
