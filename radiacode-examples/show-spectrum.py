@@ -56,9 +56,7 @@ def plot_RC102Spectrum():
     # parse command line arguments
     # ------
     parser = argparse.ArgumentParser(description='read and display spectrum from RadioCode 102')
-    parser.add_argument(
-        '--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of radiascan device'
-    )
+    parser.add_argument('--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of radiascan device')
     parser.add_argument(
         '-n',
         '--noreset',
@@ -224,9 +222,7 @@ def plot_RC102Spectrum():
 
             text_active.set_text('accumulation time: ' + str(total_time) + 's')
             text_cum_statistics.set_text(
-                f'counts: {countsum:.5g} \n'
-                + f'dose: {total_dose:.3g} µGy  \n'
-                + f'av. doserate: {av_doserate:.3g} µGy/h'
+                f'counts: {countsum:.5g} \n' + f'dose: {total_dose:.3g} µGy  \n' + f'av. doserate: {av_doserate:.3g} µGy/h'
             )
             text_diff_statistics.set_text(f'rate: {rate:.3g} Hz\n' + f'dose: {doserate:.3g} µGy/h')
             # draw data
