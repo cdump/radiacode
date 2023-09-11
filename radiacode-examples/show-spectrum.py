@@ -55,34 +55,34 @@ def plot_RC102Spectrum():
     # ------
     # parse command line arguments
     # ------
-    parser = argparse.ArgumentParser(description="read and display spectrum from RadioCode 102")
+    parser = argparse.ArgumentParser(description='read and display spectrum from RadioCode 102')
     parser.add_argument(
-        "--bluetooth-mac", type=str, nargs="+", required=False, help="bluetooth MAC address of radiascan device"
+        '--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of radiascan device'
     )
     parser.add_argument(
-        "-n",
-        "--noreset",
-        action="store_const",
+        '-n',
+        '--noreset',
+        action='store_const',
         const=True,
         default=False,
-        help="do not reset spectrum stored in device",
+        help='do not reset spectrum stored in device',
     )
-    parser.add_argument("-i", "--interval", type=float, default=1.0, help="update interval")
-    parser.add_argument("-f", "--file", type=str, default="RC102Spectrum", help="file to store results")
-    parser.add_argument("-t", "--time", type=int, default=36000, help="run time in seconds")
-    parser.add_argument("-H", "--history", type=int, default=500, help="number of rate history points")
+    parser.add_argument('-i', '--interval', type=float, default=1.0, help='update interval')
+    parser.add_argument('-f', '--file', type=str, default='RC102Spectrum', help='file to store results')
+    parser.add_argument('-t', '--time', type=int, default=36000, help='run time in seconds')
+    parser.add_argument('-H', '--history', type=int, default=500, help='number of rate history points')
     args = parser.parse_args()
 
     bluetooth_mac = args.bluetooth_mac
     reset_spectrum = not args.noreset
     dt_wait = args.interval
     timestamp = time.strftime('%y%m%d-%H%M', time.localtime())
-    filename = args.file + "_" + timestamp + ".yaml"
+    filename = args.file + '_' + timestamp + '.yaml'
     NHistory = args.history
     run_time = args.time
     rate_history = np.zeros(NHistory)
 
-    print(f"\n *==* script {sys.argv[0]} executing")
+    print(f'\n *==* script {sys.argv[0]} executing')
 
     # ------
     # initialize and connect to RC10x device
@@ -90,7 +90,7 @@ def plot_RC102Spectrum():
     rc = RadiaCode(bluetooth_mac=bluetooth_mac)
     serial = rc.serial_number()
     fw_version = rc.fw_version()
-    status_flags = eval(rc.status().split(":")[1])[0]
+    status_flags = eval(rc.status().split(':')[1])[0]
     a0, a1, a2 = rc.energy_calib()
     # get initial spectrum and meta-data
     if reset_spectrum:
@@ -107,39 +107,39 @@ def plot_RC102Spectrum():
     t_start = _t0  # start time of acquisition from device
     T0 = _t0 - duration_s  # start time of accumulation
 
-    print(f"### Found device with serial number: {serial}")
-    print(f"    Firmware: {fw_version}")
-    print(f"    Status flags: 0x{status_flags:x}")
-    print(f"    Calibration coefficientes: a0={a0:.6f}, a1={a1:.6f}, a2={a2:.6f}")
-    print(f"    Number of spectrum channels: {NChannels}")
-    print(f"    Spectrum accumulation since {spectrum.duration}")
+    print(f'### Found device with serial number: {serial}')
+    print(f'    Firmware: {fw_version}')
+    print(f'    Status flags: 0x{status_flags:x}')
+    print(f'    Calibration coefficientes: a0={a0:.6f}, a1={a1:.6f}, a2={a2:.6f}')
+    print(f'    Number of spectrum channels: {NChannels}')
+    print(f'    Spectrum accumulation since {spectrum.duration}')
 
     # ------
     # initialize graphics display
     # -------
     # create a figure with two sub-plots
-    fig = plt.figure("Gamma Spectrum", figsize=(8.0, 6.0))
-    fig.suptitle("Radiacode Spectrum   " + time.asctime(), size="large", color="b")
+    fig = plt.figure('Gamma Spectrum', figsize=(8.0, 6.0))
+    fig.suptitle('Radiacode Spectrum   ' + time.asctime(), size='large', color='b')
     fig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.85, wspace=None, hspace=0.05)  #
     gs = fig.add_gridspec(nrows=4, ncols=1)
     # 1st plot for cumulative spectrum
     axE = fig.add_subplot(gs[:-1, :])
-    axE.set_ylabel("Cumulative counts", size="large")
+    axE.set_ylabel('Cumulative counts', size='large')
     axE.set_xlim(0.0, Energies[NChannels - 1])
-    plt.locator_params(axis="x", nbins=12)
-    axE.grid(linestyle="dotted", which="both")
-    axE.set_yscale("log")
+    plt.locator_params(axis='x', nbins=12)
+    axE.grid(linestyle='dotted', which='both')
+    axE.set_yscale('log')
     axE.set_xticklabels([])
     # second x-axis for channels
-    axC = axE.secondary_xaxis("top", functions=(En2Chan, Chan2En))
-    axC.set_xlabel("Channel #")
+    axC = axE.secondary_xaxis('top', functions=(En2Chan, Chan2En))
+    axC.set_xlabel('Channel #')
     # 2nd, smaller plot for differential spectrum
     axEdiff = fig.add_subplot(gs[-1, :])
-    axEdiff.set_xlabel("Energy (keV)", size="large")
-    axEdiff.set_ylabel("Rate (Hz)", size="large")
+    axEdiff.set_xlabel('Energy (keV)', size='large')
+    axEdiff.set_ylabel('Rate (Hz)', size='large')
     axEdiff.set_xlim(0.0, Energies[NChannels - 1])
-    plt.locator_params(axis="x", nbins=12)
-    axEdiff.grid(linestyle="dotted", which="both")
+    plt.locator_params(axis='x', nbins=12)
+    axEdiff.grid(linestyle='dotted', which='both')
 
     # create and initialize graph elements
     (line,) = axE.plot([1], [0.5])
@@ -150,27 +150,27 @@ def plot_RC102Spectrum():
     text_active = axE.text(
         0.66,
         0.94,
-        "     ",
+        '     ',
         transform=axE.transAxes,
-        color="darkred",
+        color='darkred',
         # backgroundcolor='white',
         alpha=0.7,
     )
     text_cum_statistics = axE.text(
         0.7,
         0.8,
-        "     ",
+        '     ',
         transform=axE.transAxes,
-        color="darkblue",
+        color='darkblue',
         # backgroundcolor='white',
         alpha=0.7,
     )
     text_diff_statistics = axEdiff.text(
         0.75,
         0.66,
-        "     ",
+        '     ',
         transform=axEdiff.transAxes,
-        color="darkblue",
+        color='darkblue',
         # backgroundcolor='white',
         alpha=0.7,
     )
@@ -181,8 +181,8 @@ def plot_RC102Spectrum():
     # ---
     # initialize and start read-out loop
     # ---
-    print(f"### Collecting data for {run_time:d} s")
-    toggle = ["  \\ ", "  | ", "  / ", "  - "]
+    print(f'### Collecting data for {run_time:d} s')
+    toggle = ['  \\ ', '  | ', '  / ', '  - ']
     itoggle = 0
     icount = -1
     total_time = 0
@@ -198,7 +198,7 @@ def plot_RC102Spectrum():
             counts = np.asarray(spectrum.counts)
             if not any(counts):
                 time.sleep(dt_wait)
-                print(" accumulation time:", total_time, " s", " !!! waiting for data", end="\r")
+                print(' accumulation time:', total_time, ' s', ' !!! waiting for data', end='\r')
                 continue
             counts_diff = counts - counts0
             counts0[:] = counts
@@ -222,37 +222,37 @@ def plot_RC102Spectrum():
             axEdiff.relim()
             axEdiff.autoscale_view()
 
-            text_active.set_text("accumulation time: " + str(total_time) + "s")
+            text_active.set_text('accumulation time: ' + str(total_time) + 's')
             text_cum_statistics.set_text(
-                f"counts: {countsum:.5g} \n"
-                + f"dose: {total_dose:.3g} µGy  \n"
-                + f"av. doserate: {av_doserate:.3g} µGy/h"
+                f'counts: {countsum:.5g} \n'
+                + f'dose: {total_dose:.3g} µGy  \n'
+                + f'av. doserate: {av_doserate:.3g} µGy/h'
             )
-            text_diff_statistics.set_text(f"rate: {rate:.3g} Hz\n" + f"dose: {doserate:.3g} µGy/h")
+            text_diff_statistics.set_text(f'rate: {rate:.3g} Hz\n' + f'dose: {doserate:.3g} µGy/h')
             # draw data
             fig.canvas.draw_idle()
             # update status text in terminal
             print(
                 toggle[itoggle],
-                " active:",
+                ' active:',
                 total_time,
-                "s  ",
-                f"counts: {countsum:.5g}, rate: {rate:.3g} Hz, dose: {doserate:.3g} µGy/h",
-                "    (<ctrl>+c to stop)      ",
-                end="\r",
+                's  ',
+                f'counts: {countsum:.5g}, rate: {rate:.3g} Hz, dose: {doserate:.3g} µGy/h',
+                '    (<ctrl>+c to stop)      ',
+                end='\r',
             )
             itoggle = itoggle + 1 if itoggle < 3 else 0
             # wait for corrected wait interval)
             fig.canvas.start_event_loop(max(0.9 * dt_wait, dt_wait * (icount + 2) - (time.time() - t_start)))
         # --> end while true
 
-        print("\n" + sys.argv[0] + ": exit after ", total_time, " s of data accumulation ...")
+        print('\n' + sys.argv[0] + ': exit after ', total_time, ' s of data accumulation ...')
 
     except KeyboardInterrupt:
-        print("\n" + sys.argv[0] + ": keyboard interrupt - ending ...")
+        print('\n' + sys.argv[0] + ': keyboard interrupt - ending ...')
 
     finally:  # store data
-        print(22 * ' ' + "... storing data to yaml file ->  ", filename)
+        print(22 * ' ' + '... storing data to yaml file ->  ', filename)
         d = dict(
             active_time=total_time,
             interval=dt_wait,
@@ -262,15 +262,15 @@ def plot_RC102Spectrum():
             ecal=[a0, a1, a2],
             spectrum=counts.tolist(),
         )
-        with open(filename, "w") as f:
+        with open(filename, 'w') as f:
             f.write(yaml.dump(d, default_flow_style=None))
 
-        input("    type <ret> to close down graphics window  --> ")
+        input('    type <ret> to close down graphics window  --> ')
 
         ### get dose info from device
         #  for v in rc.data_buf():
         #    print(v.dt.isoformat(), v)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     plot_RC102Spectrum()
