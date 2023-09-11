@@ -191,7 +191,7 @@ def plot_RC102Spectrum():
         while total_time < run_time:
             _t = time.time()  # start time of loop
             icount += 1
-            dt = _t - _t0  # last time interval
+            # dt = _t - _t0  # last time interval
             _t0 = _t
             total_time = int(10 * (_t - T0)) / 10  # active time rounded to 0.1s
             spectrum = rc.spectrum()
