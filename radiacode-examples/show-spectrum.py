@@ -66,7 +66,7 @@ def plot_RC102Spectrum():
         help='do not reset spectrum stored in device',
     )
     parser.add_argument('-i', '--interval', type=float, default=1.0, help='update interval')
-    parser.add_argument('-f', '--file', type=str, default='RC102Spectrum', help='file to store results')
+    parser.add_argument('-f', '--file', type=str, default='', help='file to store results')
     parser.add_argument('-t', '--time', type=int, default=36000, help='run time in seconds')
     parser.add_argument('-H', '--history', type=int, default=500, help='number of rate history points')
     args = parser.parse_args()
@@ -75,7 +75,8 @@ def plot_RC102Spectrum():
     reset_spectrum = not args.noreset
     dt_wait = args.interval
     timestamp = time.strftime('%y%m%d-%H%M', time.localtime())
-    filename = args.file + '_' + timestamp + '.yaml'
+    print(args.file)
+    filename = args.file + '_' + timestamp + '.yaml' if args.file != '' else ''
     NHistory = args.history
     run_time = args.time
     rate_history = np.zeros(NHistory)
@@ -248,18 +249,19 @@ def plot_RC102Spectrum():
         print('\n' + sys.argv[0] + ': keyboard interrupt - ending ...')
 
     finally:  # store data
-        print(22 * ' ' + '... storing data to yaml file ->  ', filename)
-        d = dict(
-            active_time=total_time,
-            interval=dt_wait,
-            rates=rate_history[: icount + 1].tolist()
-            if icount < NHistory
-            else np.concatenate((rate_history[icount + 1 :], rate_history[: icount + 1])).tolist(),
-            ecal=[a0, a1, a2],
-            spectrum=counts.tolist(),
-        )
-        with open(filename, 'w') as f:
-            f.write(yaml.dump(d, default_flow_style=None))
+        if filename != '':
+            print(22 * ' ' + '... storing data to yaml file ->  ', filename)
+            d = dict(
+                active_time=total_time,
+                interval=dt_wait,
+                rates=rate_history[: icount + 1].tolist()
+                if icount < NHistory
+                else np.concatenate((rate_history[icount + 1 :], rate_history[: icount + 1])).tolist(),
+                ecal=[a0, a1, a2],
+                spectrum=counts.tolist(),
+            )
+            with open(filename, 'w') as f:
+                f.write(yaml.dump(d, default_flow_style=None))
 
         input('    type <ret> to close down graphics window  --> ')
 
