@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "radiacode"
-version = "0.2.1"
+version = "0.2.2"
 description = "Library for RadiaCode-101"
 authors = ["Maxim Andreev <andreevmaxim@gmail.com>"]
 license = "MIT"
