@@ -154,8 +154,7 @@ def plot_RC102Spectrum():
     axRate.set_xlim(-num_history_points * dt_wait, 0.0)
 
     # create and initialize graph elements
-    # lcol = "mistyrose"
-    lcol = "#F0F0C0"
+    lcol = '#F0F0C0'
     (line,) = axE.plot([1], [0.5], color=lcol, lw=1)
     line.set_xdata(Energies)
     (line_diff,) = axEdiff.plot([1], [0.5], color=lcol)
