@@ -34,6 +34,19 @@ depositedE2doserate = keV2J * 3600 * 1e6 / m_sensor  # dose rate in µGy/h
 depositedE2dose = keV2J * 1e6 / m_sensor  # dose rate in µGy/h
 
 
+class appColors:
+    """Define colors used in this app"""
+
+    title = 'goldenrod'
+    text1 = 'linen'
+    text2 = 'lime'
+    text3 = 'red'
+    bg = 'black'
+    line1 = '#F0F0C0'
+    marker1 = 'orange'
+    auxline = 'red'
+
+
 def plot_RC102Spectrum():
     # Helper functions for conversion of channel numbers to energies
     global a0, a1, a2  # calibration constants
@@ -59,7 +72,7 @@ def plot_RC102Spectrum():
     # parse command line arguments
     # ------
     parser = argparse.ArgumentParser(description='read and display spectrum from RadioCode 102')
-    parser.add_argument('--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of radiascan device')
+    parser.add_argument('--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of device')
     parser.add_argument(
         '-n',
         '--noreset',
@@ -121,7 +134,7 @@ def plot_RC102Spectrum():
     # -------
     # create a figure with two sub-plots
     fig = plt.figure('Gamma Spectrum', figsize=(8.0, 8.0))
-    fig.suptitle('Radiacode Spectrum   ' + time.asctime(), size='large', color='goldenrod')
+    fig.suptitle('Radiacode Spectrum   ' + time.asctime(), size='large', color=appColors.title)
     fig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.85, wspace=None, hspace=0.1)  #
     gs = fig.add_gridspec(nrows=15, ncols=1)
 
@@ -154,15 +167,14 @@ def plot_RC102Spectrum():
     axRate.set_xlim(-num_history_points * dt_wait, 0.0)
 
     # create and initialize graph elements
-    lcol = '#F0F0C0'
-    (line,) = axE.plot([1], [0.5], color=lcol, lw=1)
+    (line,) = axE.plot([1], [0.5], color=appColors.line1, lw=1)
     line.set_xdata(Energies)
-    (line_diff,) = axEdiff.plot([1], [0.5], color=lcol)
+    (line_diff,) = axEdiff.plot([1], [0.5], color=appColors.line1)
     line_diff.set_xdata(Energies)
     hrates = num_history_points * [None]
     _xplt = np.linspace(-num_history_points * dt_wait, 0.0, num_history_points)
-    (line_rate,) = axRate.plot(_xplt, hrates, '.--', lw=1, markersize=4, color=lcol, mec='orange')
-    line_avrate = axRate.axhline(0.0, linestyle='--', lw=1, color='r')
+    (line_rate,) = axRate.plot(_xplt, hrates, '.--', lw=1, markersize=4, color=appColors.line1, mec=appColors.marker1)
+    line_avrate = axRate.axhline(0.0, linestyle='--', lw=1, color=appColors.auxline)
 
     # text for active time, cumulative and differential statistiscs
     text_active = axE.text(
@@ -170,7 +182,7 @@ def plot_RC102Spectrum():
         0.94,
         '     ',
         transform=axE.transAxes,
-        color='linen',
+        color=appColors.text1,
         # backgroundcolor='white',
         alpha=0.7,
     )
@@ -179,8 +191,7 @@ def plot_RC102Spectrum():
         0.75,
         '     ',
         transform=axE.transAxes,
-        color='lime',
-        # backgroundcolor='white',
+        color=appColors.text2,
         alpha=0.7,
     )
     text_diff_statistics = axEdiff.text(
@@ -188,8 +199,7 @@ def plot_RC102Spectrum():
         0.55,
         '     ',
         transform=axEdiff.transAxes,
-        color='lime',
-        # backgroundcolor='white',
+        color=appColors.text2,
         alpha=0.7,
     )
     # plot in non-blocking mode
