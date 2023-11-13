@@ -11,7 +11,6 @@
    - count rate:  count rate
    - dose rate:   energy deposit in crystal, i.e. sum(counts*energies).
    - total dose:  total sum of deposited energies
-
 """
 
 import argparse
@@ -19,16 +18,33 @@ import sys
 import time
 import numpy as np
 import yaml
+import matplotlib as mpl
 import matplotlib.pyplot as plt
-
 from radiacode import RadiaCode
+
+# set backend and matplotlib style
+mpl.use('Qt5Agg')
+plt.style.use('dark_background')
 
 # some constants
 rho_CsJ = 4.51  # density of CsJ in g/cm^3
 m_sensor = rho_CsJ * 1e-3  # Volume is 1 cm^3, mass in kg
-keV2J = 1.602e-16
+keV2J = 1.602e-16  # conversion factor keV to Joule
 depositedE2doserate = keV2J * 3600 * 1e6 / m_sensor  # dose rate in µGy/h
 depositedE2dose = keV2J * 1e6 / m_sensor  # dose rate in µGy/h
+
+
+class appColors:
+    """Define colors used in this app"""
+
+    title = 'goldenrod'
+    text1 = 'linen'
+    text2 = 'lime'
+    text3 = 'red'
+    bg = 'black'
+    line1 = '#F0F0C0'
+    marker1 = 'orange'
+    auxline = 'red'
 
 
 def plot_RC102Spectrum():
@@ -56,7 +72,7 @@ def plot_RC102Spectrum():
     # parse command line arguments
     # ------
     parser = argparse.ArgumentParser(description='read and display spectrum from RadioCode 102')
-    parser.add_argument('--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of radiascan device')
+    parser.add_argument('--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of device')
     parser.add_argument(
         '-n',
         '--noreset',
@@ -117,12 +133,13 @@ def plot_RC102Spectrum():
     # initialize graphics display
     # -------
     # create a figure with two sub-plots
-    fig = plt.figure('Gamma Spectrum', figsize=(8.0, 6.0))
-    fig.suptitle('Radiacode Spectrum   ' + time.asctime(), size='large', color='b')
-    fig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.85, wspace=None, hspace=0.05)  #
-    gs = fig.add_gridspec(nrows=4, ncols=1)
+    fig = plt.figure('Gamma Spectrum', figsize=(8.0, 8.0))
+    fig.suptitle('Radiacode Spectrum   ' + time.asctime(), size='large', color=appColors.title)
+    fig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.85, wspace=None, hspace=0.1)  #
+    gs = fig.add_gridspec(nrows=15, ncols=1)
+
     # 1st plot for cumulative spectrum
-    axE = fig.add_subplot(gs[:-1, :])
+    axE = fig.add_subplot(gs[:-6, :])
     axE.set_ylabel('Cumulative counts', size='large')
     axE.set_xlim(0.0, Energies[NChannels - 1])
     plt.locator_params(axis='x', nbins=12)
@@ -132,45 +149,57 @@ def plot_RC102Spectrum():
     # second x-axis for channels
     axC = axE.secondary_xaxis('top', functions=(En2Chan, Chan2En))
     axC.set_xlabel('Channel #')
+
     # 2nd, smaller plot for differential spectrum
-    axEdiff = fig.add_subplot(gs[-1, :])
+    axEdiff = fig.add_subplot(gs[-6:-4, :])
     axEdiff.set_xlabel('Energy (keV)', size='large')
-    axEdiff.set_ylabel('Rate (Hz)', size='large')
+    axEdiff.set_ylabel('Counts', size='large')
     axEdiff.set_xlim(0.0, Energies[NChannels - 1])
     plt.locator_params(axis='x', nbins=12)
     axEdiff.grid(linestyle='dotted', which='both')
 
+    # 3rd, small plot for rate history
+    axRate = fig.add_subplot(gs[-2:, :])
+    axRate.set_xlabel('History [s]', size='large')
+    axRate.set_ylabel('Rate (Hz)', size='large')
+    axRate.grid(linestyle='dotted', which='both')
+    num_history_points = 300
+    axRate.set_xlim(-num_history_points * dt_wait, 0.0)
+
     # create and initialize graph elements
-    (line,) = axE.plot([1], [0.5])
+    (line,) = axE.plot([1], [0.5], color=appColors.line1, lw=1)
     line.set_xdata(Energies)
-    (line_diff,) = axEdiff.plot([1], [0.5])
+    (line_diff,) = axEdiff.plot([1], [0.5], color=appColors.line1)
     line_diff.set_xdata(Energies)
+    hrates = num_history_points * [None]
+    _xplt = np.linspace(-num_history_points * dt_wait, 0.0, num_history_points)
+    (line_rate,) = axRate.plot(_xplt, hrates, '.--', lw=1, markersize=4, color=appColors.line1, mec=appColors.marker1)
+    line_avrate = axRate.axhline(0.0, linestyle='--', lw=1, color=appColors.auxline)
+
     # text for active time, cumulative and differential statistiscs
     text_active = axE.text(
         0.66,
         0.94,
         '     ',
         transform=axE.transAxes,
-        color='darkred',
+        color=appColors.text1,
         # backgroundcolor='white',
         alpha=0.7,
     )
     text_cum_statistics = axE.text(
         0.7,
-        0.8,
+        0.75,
         '     ',
         transform=axE.transAxes,
-        color='darkblue',
-        # backgroundcolor='white',
+        color=appColors.text2,
         alpha=0.7,
     )
     text_diff_statistics = axEdiff.text(
         0.75,
-        0.66,
+        0.55,
         '     ',
         transform=axEdiff.transAxes,
-        color='darkblue',
-        # backgroundcolor='white',
+        color=appColors.text2,
         alpha=0.7,
     )
     # plot in non-blocking mode
@@ -205,6 +234,8 @@ def plot_RC102Spectrum():
             countsum = np.sum(counts)
             rate = (countsum - countsum0) / dt_wait
             rate_history[icount % NHistory] = rate
+            rate_av = countsum / total_time
+            hrates[icount % num_history_points] = rate
             depE = np.sum(counts_diff * Energies)  # in keV
             doserate = depE * depositedE2doserate / dt_wait
             # dose in µGy/h = µJ/(kg*h)
@@ -220,10 +251,18 @@ def plot_RC102Spectrum():
             line_diff.set_ydata(counts_diff)
             axEdiff.relim()
             axEdiff.autoscale_view()
+            k = icount % num_history_points
+            line_rate.set_ydata(np.concatenate((hrates[k + 1 :], hrates[: k + 1])))
+            axRate.relim()
+            axRate.autoscale_view()
+            line_avrate.set_ydata([rate_av])
 
             text_active.set_text('accumulation time: ' + str(total_time) + 's')
             text_cum_statistics.set_text(
-                f'counts: {countsum:.5g} \n' + f'dose: {total_dose:.3g} µGy  \n' + f'av. doserate: {av_doserate:.3g} µGy/h'
+                f'counts: {countsum:.5g}\n'
+                + f'av. rate: {rate_av:.3g} Hz\n'
+                + f'dose: {total_dose:.3g} µGy  \n'
+                + f'av. doserate: {av_doserate:.3g} µGy/h'
             )
             text_diff_statistics.set_text(f'rate: {rate:.3g} Hz\n' + f'dose: {doserate:.3g} µGy/h')
             # draw data
