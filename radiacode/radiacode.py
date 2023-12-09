@@ -7,7 +7,7 @@ from radiacode.decoders.databuf import decode_VS_DATA_BUF
 from radiacode.decoders.spectrum import decode_RC_VS_SPECTRUM
 from radiacode.transports.bluetooth import Bluetooth
 from radiacode.transports.usb import Usb
-from radiacode.types import CTRL, VS, VSFR, CountRate, DisplayDirection, DoseRate, DoseRateDB, Event, RareData, Spectrum
+from radiacode.types import CTRL, VS, VSFR, DisplayDirection, DoseRateDB, Event, RareData, RawData, RealTimeData, Spectrum
 
 
 # channel number -> kEv
@@ -57,8 +57,12 @@ class RadiaCode:
     def read_request(self, command_id: Union[int, VS, VSFR]) -> BytesBuffer:
         r = self.execute(b'\x26\x08', struct.pack('<I', int(command_id)))
         retcode, flen = r.unpack('<II')
-        assert retcode == 1
-        assert r.size() == flen
+        assert retcode == 1, f'{command_id}: got retcode {retcode}'
+        # HACK: workaround for new firmware bug(?)
+        if r.size() == flen + 1 and r._data[-1] == 0x00:
+            r._data = r._data[:-1]
+        # END OF HACK
+        assert r.size() == flen, f'{command_id}: got size {r.size()}, expect {flen}'
         return r
 
     def write_request(self, command_id: Union[int, VSFR], data: Optional[bytes] = None) -> None:
@@ -128,7 +132,7 @@ class RadiaCode:
     def device_time(self, v: int) -> None:
         self.write_request(VSFR.DEVICE_TIME, struct.pack('<I', v))
 
-    def data_buf(self) -> List[Union[CountRate, DoseRate, DoseRateDB, RareData, Event]]:
+    def data_buf(self) -> List[Union[DoseRateDB, RareData, RealTimeData, RawData, Event]]:
         r = self.read_request(VS.DATA_BUF)
         return decode_VS_DATA_BUF(r, self._base_time)
 

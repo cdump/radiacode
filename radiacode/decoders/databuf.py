@@ -2,14 +2,14 @@ import datetime
 from typing import List, Union
 
 from radiacode.bytes_buffer import BytesBuffer
-from radiacode.types import CountRate, DoseRate, DoseRateDB, Event, RareData
+from radiacode.types import DoseRateDB, Event, RareData, RawData, RealTimeData
 
 
 def decode_VS_DATA_BUF(
     br: BytesBuffer,
     base_time: datetime.datetime,
-) -> List[Union[CountRate, DoseRate, DoseRateDB, RareData, Event]]:
-    ret: List[Union[CountRate, DoseRate, DoseRateDB, RareData, Event]] = []
+) -> List[Union[RealTimeData, DoseRateDB, RareData, RawData, Event]]:
+    ret: List[Union[RealTimeData, DoseRateDB, RareData, RawData, Event]] = []
     next_seq = None
     while br.size() > 0:
         seq, eid, gid, ts_offset = br.unpack('<BBBi')
@@ -18,24 +18,26 @@ def decode_VS_DATA_BUF(
             raise Exception(f'seq jump, expect:{next_seq}, got:{seq}')
 
         next_seq = (seq + 1) % 256
-        if eid == 0 and gid == 0:  # GRP_CountRate
-            count_rate, count_rate_err, flags = br.unpack('<fHH')
+        if eid == 0 and gid == 0:  # GRP_RealTimeData
+            count_rate, dose_rate, count_rate_err, dose_rate_err, flags, rt_flags = br.unpack('<ffHHHB')
             ret.append(
-                CountRate(
+                RealTimeData(
                     dt=dt,
                     count_rate=count_rate,
-                    count_rate_err=count_rate_err * 0.1,
+                    count_rate_err=count_rate_err / 10,
+                    dose_rate=dose_rate,
+                    dose_rate_err=dose_rate_err / 10,
                     flags=flags,
+                    real_time_flags=rt_flags,
                 )
             )
-        elif eid == 0 and gid == 1:  # GRP_DoseRate
-            dose_rate, dose_rate_err, flags = br.unpack('<fHH')
+        elif eid == 0 and gid == 1:  # GRP_RawData
+            count_rate, dose_rate = br.unpack('<ff')
             ret.append(
-                DoseRate(
+                RawData(
                     dt=dt,
+                    count_rate=count_rate,
                     dose_rate=dose_rate,
-                    dose_rate_err=dose_rate_err * 0.1,
-                    flags=flags,
                 )
             )
         elif eid == 0 and gid == 2:  # GRP_DoseRateDB
@@ -46,7 +48,7 @@ def decode_VS_DATA_BUF(
                     count=count,
                     count_rate=count_rate,
                     dose_rate=dose_rate,
-                    dose_rate_err=dose_rate_err * 0.1,
+                    dose_rate_err=dose_rate_err / 10,
                     flags=flags,
                 )
             )
@@ -57,8 +59,8 @@ def decode_VS_DATA_BUF(
                     dt=dt,
                     duration=duration,
                     dose=dose,
-                    temperature=temperature * 0.01 - 20,
-                    charge_level=charge_level * 0.01,
+                    temperature=(temperature - 2000) / 100,
+                    charge_level=charge_level / 100,
                     flags=flags,
                 )
             )
@@ -85,6 +87,9 @@ def decode_VS_DATA_BUF(
             count_rate, flags = br.unpack('<fH')
         elif eid == 0 and gid == 9:  # GRP_RawDoseRate
             dose_rate, flags = br.unpack('<fH')
+        elif eid == 1 and gid == 1:  # ???
+            samples_num, smpl_time_ms = br.unpack('<HI')
+            br.unpack(f'<{8*samples_num}x')  # skip
         elif eid == 1 and gid == 2:
             samples_num, smpl_time_ms = br.unpack('<HI')
             br.unpack(f'<{16*samples_num}x')  # skip

@@ -5,19 +5,21 @@ from typing import List
 
 
 @dataclass
-class CountRate:
+class RealTimeData:
     dt: datetime.datetime
     count_rate: float
     count_rate_err: float  # %
-    flags: int
-
-
-@dataclass
-class DoseRate:
-    dt: datetime.datetime
     dose_rate: int
     dose_rate_err: int
     flags: int
+    real_time_flags: int
+
+
+@dataclass
+class RawData:
+    dt: datetime.datetime
+    count_rate: float
+    dose_rate: float
 
 
 @dataclass

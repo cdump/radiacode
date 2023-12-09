@@ -4,43 +4,38 @@ import time
 
 import aiohttp
 
-from radiacode import CountRate, DoseRate, RadiaCode
+from radiacode import RealTimeData, RadiaCode
 
 
 def sensors_data(rc_conn):
     databuf = rc_conn.data_buf()
 
-    last_countrate, last_doserate = None, None
+    last = None
     for v in databuf:
-        if isinstance(v, CountRate):
-            if last_countrate is None or last_countrate.dt < v.dt:
-                last_countrate = v
-        elif isinstance(v, DoseRate):
-            if last_doserate is None or last_doserate.dt < v.dt:
-                last_doserate = v
+        if isinstance(v, RealTimeData):
+            if last is None or last.dt < v.dt:
+                last = v
 
-    ret = []
-    if last_countrate is not None:
-        ret.append(
-            {
-                'id': 'S1',
-                'name': 'CountRate',
-                'value': last_countrate.count_rate,
-                'unit': 'CPS',
-                'time': int(last_countrate.dt.timestamp()),
-            }
-        )
-    if last_doserate is not None:
-        ret.append(
-            {
-                'id': 'S2',
-                'name': 'R_DoseRate',
-                'value': 1000000 * last_doserate.dose_rate,
-                'unit': 'μR/h',
-                'time': int(last_doserate.dt.timestamp()),
-            }
-        )
-    return ret
+    if last is None:
+        return []
+
+    ts = int(last.dt.timestamp())
+    return [
+        {
+            'id': 'S1',
+            'name': 'CountRate',
+            'value': last.count_rate,
+            'unit': 'CPS',
+            'time': ts,
+        },
+        {
+            'id': 'S2',
+            'name': 'R_DoseRate',
+            'value': 1000000 * last.dose_rate,
+            'unit': 'μR/h',
+            'time': ts,
+        },
+    ]
 
 
 async def send_data(d):

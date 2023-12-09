@@ -3,7 +3,7 @@ import time
 
 import prometheus_client
 
-from radiacode import CountRate, DoseRate, RadiaCode
+from radiacode import RealTimeData, RadiaCode
 
 
 def main():
@@ -33,10 +33,9 @@ def main():
 
     while True:
         for v in rc.data_buf():
-            if isinstance(v, CountRate):
+            if isinstance(v, RealTimeData):
                 metric_count_rate.set(v.count_rate)
                 metric_count_rate_error.set(v.count_rate_err)
-            elif isinstance(v, DoseRate):
                 metric_dose_rate.set(10000 * v.dose_rate)  # convert to μSv/h
                 metric_dose_rate_error.set(v.dose_rate_err)
 
