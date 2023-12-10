@@ -7,7 +7,7 @@ from radiacode.decoders.databuf import decode_VS_DATA_BUF
 from radiacode.decoders.spectrum import decode_RC_VS_SPECTRUM
 from radiacode.transports.bluetooth import Bluetooth
 from radiacode.transports.usb import Usb
-from radiacode.types import CTRL, VS, VSFR, CountRate, DisplayDirection, DoseRate, DoseRateDB, Event, RareData, Spectrum
+from radiacode.types import CTRL, VS, VSFR, DisplayDirection, DoseRateDB, Event, RareData, RawData, RealTimeData, Spectrum
 
 
 # channel number -> kEv
@@ -18,7 +18,7 @@ def spectrum_channel_to_energy(channel_number: int, a0: float, a1: float, a2: fl
 class RadiaCode:
     _connection: Union[Bluetooth, Usb]
 
-    def __init__(self, bluetooth_mac: Optional[str] = None):
+    def __init__(self, bluetooth_mac: Optional[str] = None, ignore_firmware_compatibility_check: bool = False):
         self._seq = 0
         if bluetooth_mac is not None:
             self._connection = Bluetooth(bluetooth_mac)
@@ -30,6 +30,12 @@ class RadiaCode:
         self._base_time = datetime.datetime.now()
         self.set_local_time(self._base_time)
         self.device_time(0)
+
+        (_, (vmaj, vmin, _)) = self.fw_version()
+        if ignore_firmware_compatibility_check is False and vmaj < 4 or (vmaj == 4 and vmin < 8):
+            raise Exception(
+                f'Incompatible firmware version {vmaj}.{vmin}, >=4.8 required. Upgrade device firmware or use radiacode==0.2.2'
+            )
 
         self._spectrum_format_version = 0
         for line in self.configuration().split('\n'):
@@ -57,8 +63,12 @@ class RadiaCode:
     def read_request(self, command_id: Union[int, VS, VSFR]) -> BytesBuffer:
         r = self.execute(b'\x26\x08', struct.pack('<I', int(command_id)))
         retcode, flen = r.unpack('<II')
-        assert retcode == 1
-        assert r.size() == flen
+        assert retcode == 1, f'{command_id}: got retcode {retcode}'
+        # HACK: workaround for new firmware bug(?)
+        if r.size() == flen + 1 and r._data[-1] == 0x00:
+            r._data = r._data[:-1]
+        # END OF HACK
+        assert r.size() == flen, f'{command_id}: got size {r.size()}, expect {flen}'
         return r
 
     def write_request(self, command_id: Union[int, VSFR], data: Optional[bytes] = None) -> None:
@@ -91,14 +101,14 @@ class RadiaCode:
         idstring = r.unpack_string()
         return f'Signature: {signature:08X}, FileName="{filename}", IdString="{idstring}"'
 
-    def fw_version(self) -> str:
+    def fw_version(self) -> tuple[tuple[int, int, str], tuple[int, int, str]]:
         r = self.execute(b'\x0a\x00')
-        boot_v0, boot_v1 = r.unpack('<HH')
+        boot_minor, boot_major = r.unpack('<HH')
         boot_date = r.unpack_string()
-        target_v0, target_v1 = r.unpack('<HH')
+        target_minor, target_major = r.unpack('<HH')
         target_date = r.unpack_string()
         assert r.size() == 0
-        return f'Boot version: {boot_v1}.{boot_v0} {boot_date} | Target version: {target_v1}.{target_v0} {target_date}'
+        return ((boot_major, boot_minor, boot_date), (target_major, target_minor, target_date))
 
     def hw_serial_number(self) -> str:
         r = self.execute(b'\x0b\x00')
@@ -128,7 +138,7 @@ class RadiaCode:
     def device_time(self, v: int) -> None:
         self.write_request(VSFR.DEVICE_TIME, struct.pack('<I', v))
 
-    def data_buf(self) -> List[Union[CountRate, DoseRate, DoseRateDB, RareData, Event]]:
+    def data_buf(self) -> List[Union[DoseRateDB, RareData, RealTimeData, RawData, Event]]:
         r = self.read_request(VS.DATA_BUF)
         return decode_VS_DATA_BUF(r, self._base_time)
 
