@@ -18,12 +18,17 @@ def spectrum_channel_to_energy(channel_number: int, a0: float, a1: float, a2: fl
 class RadiaCode:
     _connection: Union[Bluetooth, Usb]
 
-    def __init__(self, bluetooth_mac: Optional[str] = None, ignore_firmware_compatibility_check: bool = False):
+    def __init__(
+        self,
+        bluetooth_mac: Optional[str] = None,
+        serial_number: Optional[str] = None,
+        ignore_firmware_compatibility_check: bool = False,
+    ):
         self._seq = 0
         if bluetooth_mac is not None:
             self._connection = Bluetooth(bluetooth_mac)
         else:
-            self._connection = Usb()
+            self._connection = Usb(serial_number=serial_number)
 
         # init
         self.execute(b'\x07\x00', b'\x01\xff\x12\xff')
