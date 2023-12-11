@@ -20,6 +20,7 @@ import numpy as np
 import yaml
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import matplotlib.patches as patches
 from radiacode import RadiaCode
 
 # set backend and matplotlib style
@@ -38,9 +39,10 @@ class appColors:
     """Define colors used in this app"""
 
     title = 'goldenrod'
-    text1 = 'linen'
-    text2 = 'lime'
-    text3 = 'red'
+    text1 = 'blue'
+    text2 = 'green'
+    text3 = 'lightgreen'
+    text4 = 'red'
     bg = 'black'
     line1 = '#F0F0C0'
     marker1 = 'orange'
@@ -50,10 +52,13 @@ class appColors:
 def plot_RC102Spectrum():
     # Helper functions for conversion of channel numbers to energies
     global a0, a1, a2  # calibration constants
-    # approx. calibration, overwritten by first  retrieved spectrum
+    # approx. calibration, overwritten by first retrieved spectrum
     a0 = 0.17
     a1 = 2.42
     a2 = 0.0004
+
+    global mpl_active  # flag indicating that matplotlib figure exists
+    mpl_active = False
 
     def Chan2En(C):
         # convert Channel number to Energy
@@ -66,6 +71,12 @@ def plot_RC102Spectrum():
         c = a0 - E
         return (np.sqrt(a1**2 - 4 * a2 * c) - a1) / (2 * a2)
 
+    def on_mpl_window_closed(ax):
+        # detect when matplotlib window is closed
+        global mpl_active
+        print('    !!! Graphics window closed')
+        mpl_active = False
+
     # end helpers ---------------------------------------
 
     # ------
@@ -73,14 +84,8 @@ def plot_RC102Spectrum():
     # ------
     parser = argparse.ArgumentParser(description='read and display spectrum from RadioCode 102')
     parser.add_argument('--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of device')
-    parser.add_argument(
-        '-n',
-        '--noreset',
-        action='store_const',
-        const=True,
-        default=False,
-        help='do not reset spectrum stored in device',
-    )
+    parser.add_argument('-r', '--reset', action='store_true', help='reset spectrum stored in device')
+    parser.add_argument('-q', '--quiet', action='store_true', help='no status output to terminal')
     parser.add_argument('-i', '--interval', type=float, default=1.0, help='update interval')
     parser.add_argument('-f', '--file', type=str, default='', help='file to store results')
     parser.add_argument('-t', '--time', type=int, default=36000, help='run time in seconds')
@@ -88,7 +93,8 @@ def plot_RC102Spectrum():
     args = parser.parse_args()
 
     bluetooth_mac = args.bluetooth_mac
-    reset_spectrum = not args.noreset
+    reset_spectrum = args.reset
+    quiet = args.quiet
     dt_wait = args.interval
     timestamp = time.strftime('%y%m%d-%H%M', time.localtime())
     print(args.file)
@@ -133,10 +139,12 @@ def plot_RC102Spectrum():
     # initialize graphics display
     # -------
     # create a figure with two sub-plots
-    fig = plt.figure('Gamma Spectrum', figsize=(8.0, 8.0))
-    fig.suptitle('Radiacode Spectrum   ' + time.asctime(), size='large', color=appColors.title)
-    fig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.85, wspace=None, hspace=0.1)  #
+    fig = plt.figure('GammaSpectrum', figsize=(8.0, 8.0))
+    fig.suptitle('Radiacode: $\gamma$-ray spectrum   ' + time.asctime(), size='large', color=appColors.title)
+    fig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.88, wspace=None, hspace=0.1)  #
     gs = fig.add_gridspec(nrows=15, ncols=1)
+    mpl_active = True
+    fig.canvas.mpl_connect('close_event', on_mpl_window_closed)
 
     # 1st plot for cumulative spectrum
     axE = fig.add_subplot(gs[:-6, :])
@@ -194,14 +202,20 @@ def plot_RC102Spectrum():
         color=appColors.text2,
         alpha=0.7,
     )
+
+    # textbox and background
+    rect = patches.Rectangle((0.65, 0.73), 0.34, 0.26, angle=0.0, color='white', alpha=0.7, transform=axE.transAxes)
+    axE.add_patch(rect)
+
     text_diff_statistics = axEdiff.text(
         0.75,
         0.55,
         '     ',
         transform=axEdiff.transAxes,
-        color=appColors.text2,
+        color=appColors.text3,
         alpha=0.7,
     )
+
     # plot in non-blocking mode
     plt.ion()  # interactive mode, non-blocking
     plt.show()
@@ -210,13 +224,15 @@ def plot_RC102Spectrum():
     # initialize and start read-out loop
     # ---
     print(f'### Collecting data for {run_time:d} s')
+    print('  type  <ctrl>+c to stop  ', end='\r')
+
     toggle = ['  \\ ', '  | ', '  / ', '  - ']
     itoggle = 0
     icount = -1
     total_time = 0
     time.sleep(dt_wait - time.time() + t_start)
     try:
-        while total_time < run_time:
+        while total_time < run_time and mpl_active:
             _t = time.time()  # start time of loop
             icount += 1
             # dt = _t - _t0  # last time interval
@@ -268,15 +284,16 @@ def plot_RC102Spectrum():
             # draw data
             fig.canvas.draw_idle()
             # update status text in terminal
-            print(
-                toggle[itoggle],
-                ' active:',
-                total_time,
-                's  ',
-                f'counts: {countsum:.5g}, rate: {rate:.3g} Hz, dose: {doserate:.3g} µGy/h',
-                '    (<ctrl>+c to stop)      ',
-                end='\r',
-            )
+            if not quiet:
+                print(
+                    toggle[itoggle],
+                    ' active:',
+                    total_time,
+                    's  ',
+                    f'counts: {countsum:.5g}, rate: {rate:.3g} Hz, dose: {doserate:.3g} µGy/h',
+                    '    (<ctrl>+c to stop)      ',
+                    end='\r',
+                )
             itoggle = itoggle + 1 if itoggle < 3 else 0
             # wait for corrected wait interval)
             fig.canvas.start_event_loop(max(0.9 * dt_wait, dt_wait * (icount + 2) - (time.time() - t_start)))
@@ -302,7 +319,8 @@ def plot_RC102Spectrum():
             with open(filename, 'w') as f:
                 f.write(yaml.dump(d, default_flow_style=None))
 
-        input('    type <ret> to close down graphics window  --> ')
+        if mpl_active:
+            input('    type <ret> to close down graphics window  --> ')
 
         ### get dose info from device
         #  for v in rc.data_buf():
