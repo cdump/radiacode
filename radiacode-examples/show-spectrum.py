@@ -15,21 +15,26 @@
 
   Command line options:
 
-    usage: show-spectrum.py [-h] [-b BLUETOOTH_MAC] [-r] [-R] [-q]
+    Usage: show-spectrum.py [-h] [-b BLUETOOTH_MAC] [-r] [-R] [-q]
             [-i INTERVAL] [-f FILE] [-t TIME] [-H HISTORY]
 
-    read and display spectrum from RadioCode 102
+    Read and display gamma energy spectrum from RadioCode 102, 
+    show differential and updated cumulative spectrum, 
+    optionally store data to file in yaml format.  
 
-    options:
+    Options:
       -h, --help          show this help message and exit
       -b BLUETOOTH_MAC, --bluetooth-mac BLUETOOTH_MAC  bluetooth MAC address of device
-      -r, --reaccumulate  re-accumulate spectrum
+      -r, --restart       restart spectrum accumulation
       -R, --Reset         reset spectrum stored in device
       -q, --quiet         no status output to terminal
       -i INTERVAL, --interval INTERVAL update interval
       -f FILE, --file FILE  file to store results
       -t TIME, --time TIME  run time in seconds
-      -H HISTORY, --history HISTORY  number of rate history points
+      -H HISTORY, --history HISTORY  number of rate-history points to store in file
+
+   Hint: use option -R to reset spectrum data in RadiaCode device
+     
 """
 
 import argparse
@@ -101,19 +106,23 @@ def plot_RC102Spectrum():
     # ------
     # parse command line arguments
     # ------
-    parser = argparse.ArgumentParser(description='read and display spectrum from RadioCode 102')
+    parser = argparse.ArgumentParser(
+        description='Read and display gamma energy spectrum from RadioCode 102, '
+        + 'show differential and updated cumulative spectrum, '
+        + 'optionally store data to file in yaml format.'
+    )
     parser.add_argument('-b', '--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of device')
-    parser.add_argument('-r', '--reaccumulate', action='store_true', help='re-accumulate spectrum')
+    parser.add_argument('-r', '--restart', action='store_true', help='restart spectrum accumulation')
     parser.add_argument('-R', '--Reset', action='store_true', help='reset spectrum stored in device')
     parser.add_argument('-q', '--quiet', action='store_true', help='no status output to terminal')
     parser.add_argument('-i', '--interval', type=float, default=1.0, help='update interval')
     parser.add_argument('-f', '--file', type=str, default='', help='file to store results')
     parser.add_argument('-t', '--time', type=int, default=36000, help='run time in seconds')
-    parser.add_argument('-H', '--history', type=int, default=500, help='number of rate history points')
+    parser.add_argument('-H', '--history', type=int, default=500, help='number of rate-history points to store in file')
     args = parser.parse_args()
 
     bluetooth_mac = args.bluetooth_mac
-    reaccumulate = args.reaccumulate
+    restart_accumulation = args.restart
     reset_device_spectrum = args.Reset
     quiet = args.quiet
     dt_wait = args.interval
@@ -124,9 +133,10 @@ def plot_RC102Spectrum():
     run_time = args.time
     rate_history = np.zeros(NHistory)
 
-    print(f'\n *==* script {sys.argv[0]} executing')
-    if bluetooth_mac is not None:
-        print(f'    connecting via Bluetooth, MAC: {bluetooth_mac}')
+    if not quiet:
+        print(f'\n *==* script {sys.argv[0]} executing')
+        if bluetooth_mac is not None:
+            print(f'    connecting via Bluetooth, MAC: {bluetooth_mac}')
 
     # ------
     # initialize and connect to RC10x device
@@ -252,7 +262,7 @@ def plot_RC102Spectrum():
     icount = -1
     total_time = 0
     previous_counts = counts0.copy()
-    if reaccumulate:
+    if restart_accumulation:
         counts = np.zeros(len(counts0))
         T0 = t_start
     else:
