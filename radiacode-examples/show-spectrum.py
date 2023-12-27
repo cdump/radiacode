@@ -25,6 +25,7 @@
     Options:
       -h, --help          show this help message and exit
       -b BLUETOOTH_MAC, --bluetooth-mac BLUETOOTH_MAC  bluetooth MAC address of device
+      -s SERIAL_NUMBER, --serial-number SERIAL_NUMBER  serial number of device
       -r, --restart       restart spectrum accumulation
       -R, --Reset         reset spectrum stored in device
       -q, --quiet         no status output to terminal
@@ -112,6 +113,7 @@ def plot_RC102Spectrum():
         + 'optionally store data to file in yaml format.'
     )
     parser.add_argument('-b', '--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of device')
+    parser.add_argument('-s', '--serial-number', type=str, required=False, help='serial number of device')
     parser.add_argument('-r', '--restart', action='store_true', help='restart spectrum accumulation')
     parser.add_argument('-R', '--Reset', action='store_true', help='reset spectrum stored in device')
     parser.add_argument('-q', '--quiet', action='store_true', help='no status output to terminal')
@@ -122,6 +124,7 @@ def plot_RC102Spectrum():
     args = parser.parse_args()
 
     bluetooth_mac = args.bluetooth_mac
+    serial_number = args.serial_number
     restart_accumulation = args.restart
     reset_device_spectrum = args.Reset
     quiet = args.quiet
@@ -136,12 +139,16 @@ def plot_RC102Spectrum():
     if not quiet:
         print(f'\n *==* script {sys.argv[0]} executing')
         if bluetooth_mac is not None:
-            print(f'    connecting via Bluetooth, MAC: {bluetooth_mac}')
+            print(f'    connecting via Bluetooth, MAC {bluetooth_mac}')
+        elif serial_number is not None:
+            print(f'    connect via USB to device with SN {serial_number}')
+        else:
+            print(f'    connect via USB')
 
     # ------
     # initialize and connect to RC10x device
     # ------
-    rc = RadiaCode(bluetooth_mac=bluetooth_mac)
+    rc = RadiaCode(bluetooth_mac=bluetooth_mac, serial_number=serial_number)
     serial = rc.serial_number()
     fw_version = rc.fw_version()
     status_flags = eval(rc.status().split(':')[1])[0]
