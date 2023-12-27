@@ -143,7 +143,7 @@ def plot_RC102Spectrum():
         elif serial_number is not None:
             print(f'    connect via USB to device with SN {serial_number}')
         else:
-            print(f'    connect via USB')
+            print('    connect via USB')
 
     # ------
     # initialize and connect to RC10x device
