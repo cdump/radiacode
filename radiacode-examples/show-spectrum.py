@@ -11,6 +11,31 @@
    - count rate:  count rate
    - dose rate:   energy deposit in crystal, i.e. sum(counts*energies).
    - total dose:  total sum of deposited energies
+
+
+  Command line options:
+
+    Usage: show-spectrum.py [-h] [-b BLUETOOTH_MAC] [-r] [-R] [-q]
+            [-i INTERVAL] [-f FILE] [-t TIME] [-H HISTORY]
+
+    Read and display gamma energy spectrum from RadioCode 102, 
+    show differential and updated cumulative spectrum, 
+    optionally store data to file in yaml format.  
+
+    Options:
+      -h, --help          show this help message and exit
+      -b BLUETOOTH_MAC, --bluetooth-mac BLUETOOTH_MAC  bluetooth MAC address of device
+      -s SERIAL_NUMBER, --serial-number SERIAL_NUMBER  serial number of device
+      -r, --restart       restart spectrum accumulation
+      -R, --Reset         reset spectrum stored in device
+      -q, --quiet         no status output to terminal
+      -i INTERVAL, --interval INTERVAL update interval
+      -f FILE, --file FILE  file to store results
+      -t TIME, --time TIME  run time in seconds
+      -H HISTORY, --history HISTORY  number of rate-history points to store in file
+
+   Hint: use option -R to reset spectrum data in RadiaCode device
+     
 """
 
 import argparse
@@ -82,18 +107,26 @@ def plot_RC102Spectrum():
     # ------
     # parse command line arguments
     # ------
-    parser = argparse.ArgumentParser(description='read and display spectrum from RadioCode 102')
-    parser.add_argument('--bluetooth-mac', type=str, nargs='+', required=False, help='bluetooth MAC address of device')
-    parser.add_argument('-r', '--reset', action='store_true', help='reset spectrum stored in device')
+    parser = argparse.ArgumentParser(
+        description='Read and display gamma energy spectrum from RadioCode 102, '
+        + 'show differential and updated cumulative spectrum, '
+        + 'optionally store data to file in yaml format.'
+    )
+    parser.add_argument('-b', '--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of device')
+    parser.add_argument('-s', '--serial-number', type=str, required=False, help='serial number of device')
+    parser.add_argument('-r', '--restart', action='store_true', help='restart spectrum accumulation')
+    parser.add_argument('-R', '--Reset', action='store_true', help='reset spectrum stored in device')
     parser.add_argument('-q', '--quiet', action='store_true', help='no status output to terminal')
     parser.add_argument('-i', '--interval', type=float, default=1.0, help='update interval')
     parser.add_argument('-f', '--file', type=str, default='', help='file to store results')
     parser.add_argument('-t', '--time', type=int, default=36000, help='run time in seconds')
-    parser.add_argument('-H', '--history', type=int, default=500, help='number of rate history points')
+    parser.add_argument('-H', '--history', type=int, default=500, help='number of rate-history points to store in file')
     args = parser.parse_args()
 
     bluetooth_mac = args.bluetooth_mac
-    reset_spectrum = args.reset
+    serial_number = args.serial_number
+    restart_accumulation = args.restart
+    reset_device_spectrum = args.Reset
     quiet = args.quiet
     dt_wait = args.interval
     timestamp = time.strftime('%y%m%d-%H%M', time.localtime())
@@ -103,18 +136,25 @@ def plot_RC102Spectrum():
     run_time = args.time
     rate_history = np.zeros(NHistory)
 
-    print(f'\n *==* script {sys.argv[0]} executing')
+    if not quiet:
+        print(f'\n *==* script {sys.argv[0]} executing')
+        if bluetooth_mac is not None:
+            print(f'    connecting via Bluetooth, MAC {bluetooth_mac}')
+        elif serial_number is not None:
+            print(f'    connect via USB to device with SN {serial_number}')
+        else:
+            print('    connect via USB')
 
     # ------
     # initialize and connect to RC10x device
     # ------
-    rc = RadiaCode(bluetooth_mac=bluetooth_mac)
+    rc = RadiaCode(bluetooth_mac=bluetooth_mac, serial_number=serial_number)
     serial = rc.serial_number()
     fw_version = rc.fw_version()
     status_flags = eval(rc.status().split(':')[1])[0]
     a0, a1, a2 = rc.energy_calib()
     # get initial spectrum and meta-data
-    if reset_spectrum:
+    if reset_device_spectrum:
         rc.spectrum_reset()
     spectrum = rc.spectrum()
     # print(f'### Spectrum: {spectrum}')
@@ -123,10 +163,8 @@ def plot_RC102Spectrum():
     Channels = np.asarray(range(NChannels)) + 0.5
     Energies = Chan2En(Channels)
     duration_s = spectrum.duration.total_seconds()
-    countsum0 = np.sum(np.asarray(spectrum.counts))
     _t0 = time.time()
     t_start = _t0  # start time of acquisition from device
-    T0 = _t0 - duration_s  # start time of accumulation
 
     print(f'### Found device with serial number: {serial}')
     print(f'    Firmware: {fw_version}')
@@ -230,6 +268,16 @@ def plot_RC102Spectrum():
     itoggle = 0
     icount = -1
     total_time = 0
+    previous_counts = counts0.copy()
+    if restart_accumulation:
+        counts = np.zeros(len(counts0))
+        T0 = t_start
+    else:
+        counts = counts0.copy()
+        T0 = t_start - duration_s  # start time of accumulation
+
+    countsum0 = np.sum(counts)
+
     time.sleep(dt_wait - time.time() + t_start)
     try:
         while total_time < run_time and mpl_active:
@@ -239,13 +287,14 @@ def plot_RC102Spectrum():
             _t0 = _t
             total_time = int(10 * (_t - T0)) / 10  # active time rounded to 0.1s
             spectrum = rc.spectrum()
-            counts = np.asarray(spectrum.counts)
-            if not any(counts):
+            actual_counts = np.asarray(spectrum.counts)
+            if not any(actual_counts):
                 time.sleep(dt_wait)
                 print(' accumulation time:', total_time, ' s', ' !!! waiting for data', end='\r')
                 continue
-            counts_diff = counts - counts0
-            counts0[:] = counts
+            counts_diff = actual_counts - previous_counts
+            previous_counts[:] = actual_counts
+            counts += counts_diff
             # some statistics
             countsum = np.sum(counts)
             rate = (countsum - countsum0) / dt_wait
