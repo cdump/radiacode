@@ -169,6 +169,13 @@ class RadiaCode:
         r = self.read_request(VS.ENERGY_CALIB)
         return list(r.unpack('<fff'))
 
+    def set_energy_calib(self, coef: List[float]) -> None:
+        assert len(coef) == 3
+        pc = struct.pack('<fff', *coef)
+        r = self.execute(b'\x27\x08', struct.pack('<II', int(VS.ENERGY_CALIB), len(pc)) + pc)
+        retcode = r.unpack('<I')[0]
+        assert retcode == 1
+
     def set_language(self, lang='ru') -> None:
         assert lang in {'ru', 'en'}, 'unsupported lang value - use "ru" or "en"'
         self.write_request(VSFR.DEVICE_LANG, struct.pack('<I', bool(lang == 'en')))

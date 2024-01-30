@@ -26,7 +26,6 @@ pyyaml = {version = "^6.0", optional = true}
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.1"
 mypy = "^1.7"
-black = "^23.11"
 
 [tool.poetry.extras]
 examples = ["aiohttp", "prometheus-client", "matplotlib", "numpy", "pyyaml"]
@@ -35,11 +34,6 @@ examples = ["aiohttp", "prometheus-client", "matplotlib", "numpy", "pyyaml"]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.black]
-line-length = 130
-target-version = ["py310"]
-skip-string-normalization = true
-
 [tool.ruff]
 extend-select = ["B", "Q"]
 line-length = 130
@@ -47,6 +41,9 @@ target-version = "py310"
 
 [tool.ruff.flake8-quotes]
 inline-quotes = "single"
+
+[tool.ruff.format]
+quote-style = "single"
 
 [tool.ruff.per-file-ignores]
 "__init__.py" = ["F401", "F403"]
