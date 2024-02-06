@@ -113,7 +113,7 @@ class RadiaCode:
         target_minor, target_major = r.unpack('<HH')
         target_date = r.unpack_string()
         assert r.size() == 0
-        return ((boot_major, boot_minor, boot_date), (target_major, target_minor, target_date))
+        return ((boot_major, boot_minor, boot_date), (target_major, target_minor, target_date.strip('\x00')))
 
     def hw_serial_number(self) -> str:
         r = self.execute(b'\x0b\x00')
