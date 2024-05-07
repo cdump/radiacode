@@ -1,46 +1,39 @@
 import argparse
-import time, platform, asyncio
+import time, asyncio
 
 from radiacode import RadiaCode
 from radiacode.transports.usb import DeviceNotFound as DeviceNotFoundUSB
 from radiacode.transports.bluetooth import DeviceNotFound as DeviceNotFoundBT
 
 async def main(args: argparse.Namespace):
-    if hasattr(args, 'bluetooth_mac') and getattr(args, 'bluetooth_mac', None):
-        print(f'Connecting to Radiacode via Bluetooth (MAC address: {args.bluetooth_mac})')
-
-        try:
-            rc = RadiaCode(bluetooth_mac=args.bluetooth_mac)
-        except DeviceNotFoundBT as e:
-            print(e)
-            return
-        except ValueError as e:
-            print(e)
-            return
-    elif hasattr(args, 'bluetooth') and getattr(args, 'bluetooth', None):
-        if args.bluetooth is None:
-            print('Scanning for devices. We will try to connect to the first Radiacode available via Bluetooth')
+    try:
+        if args.bluetooth_mac:
+            print(f'Connecting to Radiacode via Bluetooth (MAC address: {args.bluetooth_mac})')
+            rc = await RadiaCode.connect(bluetooth_mac=args.bluetooth_mac)
+        elif args.bluetooth_uuid:
+            print(f'Connecting to Radiacode via Bluetooth (UUID: {args.bluetooth_uuid})')
+            rc = await RadiaCode.connect(bluetooth_uuid=args.bluetooth_uuid)
+        elif args.bluetooth_serial:
+            print(f'Connecting to Radiacode via Bluetooth (Serial: {args.bluetooth_serial})')
+            rc = await RadiaCode.connect(bluetooth_serial=args.bluetooth_serial)
+        elif args.serial:
+            print(f'Connecting to Radiacode via USB (Serial: {args.serial})')
+            rc = await RadiaCode.connect(serial_number=args.serial)
         else:
-            print(f'Scanning for devices. We will try to connect to: {args.bluetooth}')
-
-        try:
-            rc = await RadiaCode.BT(args.bluetooth)
-        except DeviceNotFoundBT as e:
-            print(e)
-            return
-        except ValueError as e:
-            print(e)
-            return
-    else:
-        print('Connecting to Radiacode via USB' + (f' (serial number: {args.serial})' if args.serial else ''))
-
-        try:
-            rc = RadiaCode(serial_number=args.serial)
-        except DeviceNotFoundUSB:
-            print('Device not found, check your USB connection')
-            return
-
-    await rc.set_sound_on(False)
+            print('Connecting to Radiacode via USB')
+            rc = await RadiaCode.connect()
+    except DeviceNotFoundBT as e:
+        print(e)
+        return
+    except DeviceNotFoundUSB:
+        print('Radiacode not found, check your USB connection')
+        return
+    except ValueError as e:
+        print(e)
+        return
+    except Exception as e:
+        print(e)
+        return
 
     serial = await rc.serial_number()
     print(f'### Serial number: {serial}')
@@ -60,18 +53,14 @@ async def main(args: argparse.Namespace):
             print(v.dt.isoformat(), v)
         time.sleep(2)
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    if platform.system() != 'Darwin':
-        parser.add_argument('--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of radiascan device (e.g. 00:11:22:33:44:55)')
-    else:
-        parser.add_argument('--bluetooth', type=str, required=False, help='Radiacode Serial (e.g. "RC-10x-xxxxxx"). \
-                            Since MacOS does not show Bluetooth MACs, the device has to be identified via its serial number.')
-
-    parser.add_argument('--serial', type=str, required=False,
-                        help='serial number of Radiacode device (e.g. "RC-10x-xxxxxx"). Useful in case of multiple devices.')
+    parser.add_argument('--bluetooth-mac', type=str, required=False, help='Radiacode Bluetooth MAC address (e.g. 00:11:22:33:44:55). MacOS does not support BT MACs, use Serial Number or UUID instead.')
+    parser.add_argument('--bluetooth-serial', type=str, required=False, help='Connect via Bluetooth using Radiacode Serial (e.g. "RC-10x-xxxxxx").')
+    parser.add_argument('--bluetooth-uuid', type=str, required=False, help='Connect via Bluetooth using Radiacode UUID (e.g. "11111111-2222-3333-4444-56789ABCDEF").')
+    parser.add_argument('--serial', type=str, required=False, help='Connect via USB using Radiacode Serial (e.g. "RC-10x-xxxxxx").')
+    parser.add_argument('--usb', type=str, required=False, help='(default) Connect via USB to the first Radiacode available.')
 
     args = parser.parse_args()
 

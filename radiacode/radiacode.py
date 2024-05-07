@@ -1,5 +1,5 @@
 import datetime
-import struct, platform
+import struct, platform, binascii
 from typing import List, Optional, Union
 
 from radiacode.bytes_buffer import BytesBuffer
@@ -9,11 +9,14 @@ from radiacode.transports.bluetooth import Bluetooth
 from radiacode.transports.usb import Usb
 from radiacode.types import CTRL, VS, VSFR, DisplayDirection, DoseRateDB, Event, RareData, RawData, RealTimeData, Spectrum
 
+tok = '[\033[1;32m\N{check mark}\033[0m]'
+tnok = '[\033[1;31m\N{aegean check mark}\033[0m]'
+tinfo = '[\033[1;34m\N{information source}\033[0m]'
+twarn = '[\033[1;35m\N{warning sign}\033[0m]'
 
 # channel number -> kEv
 def spectrum_channel_to_energy(channel_number: int, a0: float, a1: float, a2: float) -> float:
     return a0 + a1 * channel_number + a2 * channel_number * channel_number
-
 
 class RadiaCode:
     _connection: Union[Bluetooth, Usb]
@@ -22,50 +25,55 @@ class RadiaCode:
         self,
         bluetooth_mac: Optional[str] = None,
         bluetooth_serial: Optional[str] = None,
-        serial_number: Optional[str] = None,
-        ignore_firmware_compatibility_check: bool = False,
+        bluetooth_uuid: Optional[str] = None,
+        serial_number: Optional[str] = None
     ):
         self._seq = 0
+        self._usb = False
 
         if bluetooth_mac is not None:
-            if platform.system() != 'Darwin':
-                self._connection = Bluetooth(bluetooth_mac)
-            else:
-                self._connection = None
+            self._connection = Bluetooth(bluetooth_mac=bluetooth_mac)
         elif bluetooth_serial is not None:
-            self._connection = None
-            return
+            self._connection = Bluetooth(bluetooth_serial=bluetooth_serial)
+        elif bluetooth_uuid is not None:
+            self._connection = Bluetooth(bluetooth_uuid=bluetooth_uuid)
         else:
+            self._usb = True
+            # Connect over USB
             self._connection = Usb(serial_number=serial_number)
 
-        # Linux and Windows
-        if platform.system() != 'Darwin':
-            # init
-            self.execute(b'\x07\x00', b'\x01\xff\x12\xff')
-            self._base_time = datetime.datetime.now()
-            self.set_local_time(self._base_time)
-            self.device_time(0)
+    @classmethod
+    async def connect(cls, 
+            bluetooth_mac: Optional[str] = None,
+            bluetooth_serial: Optional[str] = None,
+            bluetooth_uuid: Optional[str] = None,
+            serial_number: Optional[str] = None,
+            ignore_firmware_compatibility_check: bool = False):
+        
+        if platform.system() == 'Darwin' and bluetooth_mac:
+            print(f'{tnok} You bluetooth connection using MAC address, but you appear to be on a Mac.')
+            print(f'{tnok} Apple does not expose Bluetooth MAC addresses anymore, so this method will not work.')
+            print(f'{tnok} Try connecting to the device using another option (UUID or Serial).')
 
-            (_, (vmaj, vmin, _)) = self.fw_version()
-            if ignore_firmware_compatibility_check is False and vmaj < 4 or (vmaj == 4 and vmin < 8):
-                raise Exception(
-                    f'Incompatible firmware version {vmaj}.{vmin}, >=4.8 required. Upgrade device firmware or use radiacode==0.2.2'
-                )
+            raise Exception(f'Exception: The chosen connection method does not work on this platform.')
 
-            self._spectrum_format_version = 0
-            for line in self.configuration().split('\n'):
-                if line.startswith('SpecFormatVersion'):
-                    self._spectrum_format_version = int(line.split('=')[1])
-                    break
+        self = cls(bluetooth_mac=bluetooth_mac, 
+                   bluetooth_serial=bluetooth_serial, 
+                   bluetooth_uuid=bluetooth_uuid,
+                   serial_number=serial_number)
+        
+        await self._init_device(ignore_firmware_compatibility_check)
+        return self
+    
+    async def _init_device(self, ignore_firmware_compatibility_check = False):
+        if self._usb is False:
+            # Connect over Bluetooth
+            await self._connection.connect()
 
-    # Only called on Mac
-    async def _connect(self, bluetooth_serial, ignore_firmware_compatibility_check = False):
-        bt = Bluetooth()
-        await bt.connect(bluetooth_serial)
-        self._connection = bt
-
-        # Init the rest here
+        # Init
+        print(f'{tinfo} Initializing Radiacode...')
         await self.execute(b'\x07\x00', b'\x01\xff\x12\xff')
+
         self._base_time = datetime.datetime.now()
         await self.set_local_time(self._base_time)
         await self.device_time(0)
@@ -84,11 +92,7 @@ class RadiaCode:
                 self._spectrum_format_version = int(line.split('=')[1])
                 break
 
-    @classmethod
-    async def BT(cls, bluetooth_serial):
-        self = cls(bluetooth_serial)
-        await self._connect(bluetooth_serial)
-        return self
+        print(f'{tok} Initialization completed')
 
     def base_time(self) -> datetime.datetime:
         return self._base_time
@@ -111,10 +115,12 @@ class RadiaCode:
         r = await self.execute(b'\x26\x08', struct.pack('<I', int(command_id)))
         retcode, flen = r.unpack('<II')
         assert retcode == 1, f'{command_id}: got retcode {retcode}'
+        
         # HACK: workaround for new firmware bug(?)
         if r.size() == flen + 1 and r._data[-1] == 0x00:
             r._data = r._data[:-1]
         # END OF HACK
+
         assert r.size() == flen, f'{command_id}: got size {r.size()}, expect {flen}'
         return r
 
