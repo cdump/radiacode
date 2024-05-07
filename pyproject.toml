@@ -14,8 +14,9 @@ classifiers = [
 include = ["radiacode-examples/*"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.13"
 bluepy = { version = "^1.3", markers = "sys_platform != 'darwin'" }
+bleak = { version = "^0.22.0", markers = "sys_platform == 'darwin'" }
 pyusb = "^1.2"
 aiohttp = {version = "^3.9", optional = true}
 prometheus-client = {version = "^0.19", optional = true}
