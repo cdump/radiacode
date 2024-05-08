@@ -2,17 +2,13 @@ import datetime
 import struct, platform, binascii
 from typing import List, Optional, Union
 
+from radiacode.logger import Logger
 from radiacode.bytes_buffer import BytesBuffer
 from radiacode.decoders.databuf import decode_VS_DATA_BUF
 from radiacode.decoders.spectrum import decode_RC_VS_SPECTRUM
 from radiacode.transports.bluetooth import Bluetooth
 from radiacode.transports.usb import Usb
 from radiacode.types import CTRL, VS, VSFR, DisplayDirection, DoseRateDB, Event, RareData, RawData, RealTimeData, Spectrum
-
-tok = '[\033[1;32m\N{check mark}\033[0m]'
-tnok = '[\033[1;31m\N{aegean check mark}\033[0m]'
-tinfo = '[\033[1;34m\N{information source}\033[0m]'
-twarn = '[\033[1;35m\N{warning sign}\033[0m]'
 
 # channel number -> kEv
 def spectrum_channel_to_energy(channel_number: int, a0: float, a1: float, a2: float) -> float:
@@ -51,11 +47,11 @@ class RadiaCode:
             ignore_firmware_compatibility_check: bool = False):
         
         if platform.system() == 'Darwin' and bluetooth_mac:
-            print(f'{tnok} You bluetooth connection using MAC address, but you appear to be on a Mac.')
-            print(f'{tnok} Apple does not expose Bluetooth MAC addresses anymore, so this method will not work.')
-            print(f'{tnok} Try connecting to the device using another option (UUID or Serial).')
+            Logger.warning('You bluetooth connection using MAC address, but you appear to be on a Mac.')
+            Logger.warning('Apple does not expose Bluetooth MAC addresses anymore, so this method will not work.')
+            Logger.warning('Try connecting to the device using another option (UUID or Serial).')
 
-            raise Exception(f'Exception: The chosen connection method does not work on this platform.')
+            raise Exception('Exception: The chosen connection method does not work on this platform.')
 
         self = cls(bluetooth_mac=bluetooth_mac, 
                    bluetooth_serial=bluetooth_serial, 
@@ -71,7 +67,7 @@ class RadiaCode:
             await self._connection.connect()
 
         # Init
-        print(f'{tinfo} Initializing Radiacode...')
+        Logger.info('Initializing Radiacode...')
         await self.execute(b'\x07\x00', b'\x01\xff\x12\xff')
 
         self._base_time = datetime.datetime.now()
@@ -92,7 +88,7 @@ class RadiaCode:
                 self._spectrum_format_version = int(line.split('=')[1])
                 break
 
-        print(f'{tok} Initialization completed')
+        Logger.notify('Initialization completed')
 
     def base_time(self) -> datetime.datetime:
         return self._base_time

@@ -3,17 +3,13 @@ import asyncio
 from typing import Optional, List, Tuple
 
 from radiacode.bytes_buffer import BytesBuffer
+from radiacode.logger import Logger
 from bleak import BleakScanner, BleakClient
 from bleak.backends.scanner import AdvertisementData, BLEDevice
 
 RADIACODE_SERVICE_UUID = 'e63215e5-7003-49d8-96b0-b024798fb901'  # Handle: 12
 RADIACODE_WRITEFD_UUID = 'e63215e6-7003-49d8-96b0-b024798fb901'  # Handle: 13, (write-without-response, write), Max write w/o rsp size: 217
 RADIACODE_NOTIFYFD_UUID = 'e63215e7-7003-49d8-96b0-b024798fb901' # Handle: 15, notify
-
-tok = '[\033[1;32m\N{check mark}\033[0m]'
-tnok = '[\033[1;31m\N{aegean check mark}\033[0m]'
-tinfo = '[\033[1;34m\N{information source}\033[0m]'
-twarn = '[\033[1;35m\N{warning sign}\033[0m]'
 
 class DeviceNotFound(Exception):
     pass
@@ -39,17 +35,17 @@ class Bluetooth():
     async def connect(self) -> None:
         if self.bluetooth_mac:
             if len(self.bluetooth_uuid) != 17:
-                print(f'{twarn} The provided MAC address does not seem to be valid, but we will try anyway')
+                Logger.warning('The provided MAC address does not seem to be valid, but we will try anyway')
 
             self.client = BleakClient(self.bluetooth_mac)
         elif self.bluetooth_serial:
             if len(self.bluetooth_serial) < 6:
-                print(f'{twarn} To improve reliability, try to provide at least 6 digits of your Radiacode serial number')
+                Logger.warning('To improve reliability, try to provide at least 6 digits of your Radiacode serial number')
 
             bt_devices = await self._scan()
 
             if len(bt_devices) == 0:
-                raise DeviceNotFound(f'{tnok} No Radiacodes found. Check that bluetooth is enabled and that the Radiacode is not connected to another device.')
+                raise DeviceNotFound('No Radiacodes found. Check that bluetooth is enabled and that the Radiacode is not connected to another device.')
             
             ble, _ = (None, None)
 
@@ -60,24 +56,24 @@ class Bluetooth():
                     break
 
             if ble is None:
-                raise DeviceNotFound(f'{tnok} No matching serial found while scanning. We were looking for: {self.bluetooth_serial}')
+                raise DeviceNotFound(f'No matching serial found while scanning. We were looking for: {self.bluetooth_serial}')
 
             self.client = BleakClient(ble)
         elif self.bluetooth_uuid:
             if len(self.bluetooth_uuid) != 36:
-                print(f'{twarn} The provided UUID does not seem to be valid, but we will try anyway')
+                Logger.warning('The provided UUID does not seem to be valid, but we will try anyway')
 
             self.client = BleakClient(self.bluetooth_uuid)
         else:
-            raise DeviceNotFound(f'{tnok} No connection parameters specified.')
+            raise DeviceNotFound('No connection parameters specified.')
 
         # Attempt connection
         await self.client.connect()
             
         if self.client.is_connected:
-            print(f'{tok} Connected to Radiacode via bluetooth using address: {self.client.address}')
+            Logger.notify(f'Connected to Radiacode via bluetooth using address: {self.client.address}')
         else:
-            raise DeviceNotFound(f'{tnok} Cannot connect to the requested Radiacode')
+            raise DeviceNotFound('Cannot connect to the requested Radiacode')
         
         # Start notifications
         self.notiffd = self.client.services.get_characteristic(RADIACODE_NOTIFYFD_UUID)
@@ -85,13 +81,13 @@ class Bluetooth():
 
         self.writefd = self.client.services.get_characteristic(RADIACODE_WRITEFD_UUID)
 
-        print(f'{tok} Notifications started')
+        Logger.notify(f'Notifications started')
     
     async def _scan(self) -> List[Tuple[BLEDevice, AdvertisementData]]:
         """ Returns a list of Tuples of valid Radiacodes """
         radiacodes = []
 
-        print(f'{tinfo} Scan started...')
+        Logger.info(f'Scan started...')
         devices = await BleakScanner.discover(return_adv=True, cb=dict(use_bdaddr=False))
 
         for ble, adv in devices.values():
@@ -107,10 +103,10 @@ class Bluetooth():
             ble, adv = r
 
             if RADIACODE_SERVICE_UUID not in adv.service_uuids:
-                print(f'{tnok} No valid service found for device {adv.local_name} - UUID: {ble.address}')
+                Logger.error(f'No valid service found for device ID: {adv.local_name} - UUID: {ble.address}')
                 continue
             else:
-                print(f'{tok} Active service found for device {adv.local_name} - UUID: {ble.address}')
+                Logger.notify(f'Active service found for device ID: {adv.local_name} - UUID: {ble.address}')
 
             bt_devices.append(r)
             
@@ -140,7 +136,7 @@ class Bluetooth():
             await self.client.connect()
 
         if self.client.is_connected == False:
-            raise DeviceNotFound(f'{tnok} Connection to the device not active')
+            raise DeviceNotFound('Connection to the device not active')
 
         # Request data
         self._response = []

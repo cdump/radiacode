@@ -24,9 +24,12 @@ class Usb:
             # usb.core.find(..., serial_number=None) will attempt to match against a value of None,
             # rather than ignoring it as a match condition.
             self._device = usb.core.find(idVendor=_vid, idProduct=_pid)
+
         self._timeout_ms = timeout_ms
+
         if self._device is None:
             raise DeviceNotFound
+
         while True:
             try:
                 self._device.read(0x81, 256, timeout=100)

@@ -21,12 +21,18 @@
   padding: 0;
   margin-left: 20px;
 }
+#app .view_controls {
+  padding-bottom: 1.5em;
+}
+#app .control_buttons {
+  padding-bottom: 1.5em;
+}
 </style>
 <body>
 <div id="app">
   <div>
     <apexchart type="bar" height="350" :options="spectrumChartOptions" :series="spectrum_series"></apexchart>
-    <div>
+    <div class="view_controls">
       <fieldset>
         <input type="checkbox" id="spectrum_x_accum" v-model="spectrum_accum">
         <label for="spectrum_x_accum">Accumulated</label>
@@ -45,12 +51,16 @@
         <label for="spectrum_log">Logarithmic</label>
       </fieldset>
     </div>
-    <button @click="updateSpectrum">Update spectrum</button>
-    <button @click="resetSpectrum">Reset spectrum</button>
+    <div class="control_buttons">
+      <button @click="updateSpectrum">Update spectrum</button>
+      <button @click="resetSpectrum">Reset spectrum</button>
+    </div>
   </div>
   <div>
     <apexchart type="line" height="350" :options="ratesChartOptions" :series="rates_series"></apexchart>
-    <button @click="rates_autoupdate = !rates_autoupdate">Rates autoupdate: {{ rates_autoupdate ? "ON" : "OFF" }}</button>
+    <div class="control_buttons">
+      <button @click="rates_autoupdate = !rates_autoupdate">Rates autoupdate: {{ rates_autoupdate ? "ON" : "OFF" }}</button>
+    </div>
   </div>
 </div>
 

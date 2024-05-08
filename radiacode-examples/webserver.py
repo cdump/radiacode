@@ -26,7 +26,7 @@ async def handle_ws(request):
 async def handle_spectrum(request):
     cn = request.app['rc_conn']
     accum = request.query.get('accum') == 'true'
-    spectrum = await (cn.spectrum_accum() if accum else await cn.spectrum())
+    spectrum = await (cn.spectrum_accum() if accum else cn.spectrum())
     
     # apexcharts can't handle 0 in logarithmic view
     spectrum_data = [(channel, cnt if cnt > 0 else 0.5) for channel, cnt in enumerate(spectrum.counts)]
@@ -75,15 +75,17 @@ async def process(app):
         await asyncio.gather(*(ws.send_str(jdata) for ws in app['ws_clients']))
         await asyncio.sleep(1.0)
 
-
 async def on_startup(app):
     app['process_task'] = asyncio.create_task(process(app))
     app['ws_clients'] = []
 
 async def init_connection(app):
     if app['args'].bluetooth_mac:
-        print('will use Bluetooth connection')
+        print('will use Bluetooth connection via MAC address')
         app['rc_conn'] = await RadiaCode.connect(bluetooth_mac=app['args'].bluetooth_mac)
+    elif app['args'].bluetooth_uuid:
+        print('will use Bluetooth connection via UUID')
+        app['rc_conn'] = await RadiaCode.connect(bluetooth_uuid=app['args'].bluetooth_uuid)
     else:
         print('will use USB connection')
         app['rc_conn'] = await RadiaCode.connect()
@@ -91,6 +93,7 @@ async def init_connection(app):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--bluetooth-mac', type=str, required=False, help='Bluetooth MAC address of radiascan device')
+    parser.add_argument('--bluetooth-uuid', type=str, required=False, help='Bluetooth UUID of radiascan device')
     parser.add_argument('--listen-host', type=str, required=False, default='127.0.0.1', help='Listen host for webserver')
     parser.add_argument('--listen-port', type=int, required=False, default=8080, help='Listen port for webserver')
     args = parser.parse_args()
