@@ -36,7 +36,8 @@ $ poetry install
 $ poetry run python3 radiacode-examples/basic.py --bluetooth-mac 52:43:01:02:03:04 # or without --bluetooth-mac for USB connection
 ```
 
-## MacOS
-The library used to communicate over Bluetooh (```bluepy```) is [not supported](https://github.com/IanHarvey/bluepy/issues/44) on MacOS. Only the USB connection is available on Apple devices. A ```USB Serial Number```, obtainable from the ```Device Info``` menu on the device itself, can be specified if more than one Radiacode is connected via USB at the same time.
+### Examples
+To install the dependencies required to run the examples: ```poetry install -E examples```
 
-Make sure ```libusb``` is installed on your system, if you use ```Brew``` you can run: ```brew install libusb```
+## MacOS
+Make sure ```libusb``` is installed in your system, if you use ```Brew``` you can run: ```brew install libusb```
