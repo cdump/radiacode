@@ -142,13 +142,13 @@ tests-no-zope = ["attrs[tests-mypy]", "cloudpickle", "hypothesis", "pympler", "p
 
 [[package]]
 name = "bleak"
-version = "0.22.0"
+version = "0.22.1"
 description = "Bluetooth Low Energy platform Agnostic Klient"
 optional = false
 python-versions = "<3.13,>=3.8"
 files = [
-    {file = "bleak-0.22.0-py3-none-any.whl", hash = "sha256:c7d85e90b55529e1eccede1d01c1a2af178306a973121b04a3fe6d3d4ece2a01"},
-    {file = "bleak-0.22.0.tar.gz", hash = "sha256:8439f5a34ecba350485a64c9bf6be5a66fb58f2b1dc597b61f224f6635ffad99"},
+    {file = "bleak-0.22.1-py3-none-any.whl", hash = "sha256:4afb5420847713535381ed2f04e7a70a1d1459153bb76e396a311964fde4aa4f"},
+    {file = "bleak-0.22.1.tar.gz", hash = "sha256:73c2e774c22345e170d36a55a9dd06f6633c88b4184d5f86140a8224f12282d4"},
 ]
 
 [package.dependencies]
@@ -186,16 +186,6 @@ files = [
     {file = "bleak_winrt-1.2.0-cp38-cp38-win_amd64.whl", hash = "sha256:810c00726653a962256b7acd8edf81ab9e4a3c66e936a342ce4aec7dbd3a7263"},
     {file = "bleak_winrt-1.2.0-cp39-cp39-win32.whl", hash = "sha256:dd740047a08925bde54bec357391fcee595d7b8ca0c74c87170a5cbc3f97aa0a"},
     {file = "bleak_winrt-1.2.0-cp39-cp39-win_amd64.whl", hash = "sha256:63130c11acfe75c504a79c01f9919e87f009f5e742bfc7b7a5c2a9c72bf591a7"},
-]
-
-[[package]]
-name = "bluepy"
-version = "1.3.0"
-description = "Python module for interfacing with BLE devices through Bluez"
-optional = false
-python-versions = "*"
-files = [
-    {file = "bluepy-1.3.0.tar.gz", hash = "sha256:2a71edafe103565fb990256ff3624c1653036a837dfc90e1e32b839f83971cec"},
 ]
 
 [[package]]
@@ -1546,4 +1536,4 @@ examples = ["aiohttp", "matplotlib", "numpy", "prometheus-client", "pyyaml"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9,<3.13"
-content-hash = "1954f372f219b6c2ec7a96c8ff6554138902f9fed15bb76d5ed0ebe43efb54a2"
+content-hash = "5c4c27c493340ddb0a804cda7204e854413708947bf24ed1734ddda0123cd31a"

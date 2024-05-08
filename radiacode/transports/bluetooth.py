@@ -34,7 +34,7 @@ class Bluetooth():
 
     async def connect(self) -> None:
         if self.bluetooth_mac:
-            if len(self.bluetooth_uuid) != 17:
+            if len(self.bluetooth_mac) != 17:
                 Logger.warning('The provided MAC address does not seem to be valid, but we will try anyway')
 
             self.client = BleakClient(self.bluetooth_mac)
@@ -71,7 +71,7 @@ class Bluetooth():
         await self.client.connect()
             
         if self.client.is_connected:
-            Logger.notify(f'Connected to Radiacode via bluetooth using address: {self.client.address}')
+            Logger.notify(f'Connected to Radiacode via bluetooth to: {self.client.address}')
         else:
             raise DeviceNotFound('Cannot connect to the requested Radiacode')
         
