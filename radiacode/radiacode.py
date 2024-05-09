@@ -1,5 +1,5 @@
 import datetime
-import struct, platform, binascii
+import struct, platform
 from typing import List, Optional, Union
 
 from radiacode.logger import Logger
