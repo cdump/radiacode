@@ -67,16 +67,16 @@ Make sure ```libusb``` is installed:
 Make sure ```libusb``` is installed on your system, if you use [Homebrew](https://brew.sh/) you can run: 
 - ```brew install libusb```
 
-*Note:* Mac OS does not expose Bluetooth MAC addresses anymore. In order to connect to your device via Bluetooth you will need to supply either its ```serial number``` (or part of it) or it's ```UUID```.
+*Note:* Mac OS does not expose Bluetooth MAC addresses anymore. In order to connect to your device via Bluetooth you will need to supply either its ```serial number``` (or part of it) or its ```UUID```.
 
-- Serial number: you can obtain it directly from the device itself, navigate to the **Info** menu, it should be in the form of: ```RC-10x-xxxxxx```
-- UUID: the UUID depends on both devices and it will change if you try to connect to the *Radiacode* from another computer (in this case, you will just need to rediscover it)
+- **Serial number**: you can obtain it directly from the device, navigate to the **Info** menu, it should be in the form of: ```RC-10x-xxxxxx```
+- **UUID**: the UUID depends on both devices and it will change if you try to connect to the *Radiacode* from another computer (in this case, you will just need to rediscover)
 
 Discovering the UUID of your *Radiacode* is quite easy:
 - Make sure the *Radiacode* is **disconnected** from other devices (such as your phone, so kill the *Radiacode app* and its background tasks)
 - Run: ```poetry run python radiacode-examples/find-radiacode.py```
 
-The script will return the UUIDs of all available Radiacodes.
+The script will return UUIDs for all available Radiacodes.
 
 ### Linux
 Make sure ```libusb``` is installed on your system. For *Debian/Ubuntu/Raspberry PI*: 
