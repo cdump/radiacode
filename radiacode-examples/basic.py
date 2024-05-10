@@ -1,5 +1,6 @@
 import argparse
-import time, platform
+import time
+import platform
 
 from radiacode import RadiaCode
 from radiacode.transports.usb import DeviceNotFound as DeviceNotFoundUSB
@@ -16,7 +17,7 @@ def main():
 
     args = parser.parse_args()
 
-    if hasattr(args, 'bluetooth_mac') and getattr(args, 'bluetooth_mac', None):
+    if hasattr(args, 'bluetooth_mac') and args.bluetooth_mac:
         print(f'Connecting to Radiacode via Bluetooth (MAC address: {args.bluetooth_mac})')
 
         try:
