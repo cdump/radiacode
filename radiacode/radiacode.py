@@ -1,5 +1,6 @@
 import datetime
 import struct
+import platform
 from typing import List, Optional, Union
 
 from radiacode.bytes_buffer import BytesBuffer
@@ -25,7 +26,11 @@ class RadiaCode:
         ignore_firmware_compatibility_check: bool = False,
     ):
         self._seq = 0
-        if bluetooth_mac is not None:
+
+        # Bluepy doesn't support MacOS: https://github.com/IanHarvey/bluepy/issues/44
+        self._bt_supported = platform.system() != 'Darwin'
+
+        if bluetooth_mac is not None and self._bt_supported is True:
             self._connection = Bluetooth(bluetooth_mac)
         else:
             self._connection = Usb(serial_number=serial_number)

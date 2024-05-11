@@ -1,5 +1,4 @@
 import struct
-
 import usb.core
 
 from radiacode.bytes_buffer import BytesBuffer
