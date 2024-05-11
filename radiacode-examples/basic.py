@@ -1,5 +1,6 @@
 import argparse
-import time, asyncio
+import time
+import asyncio
 
 from radiacode import RadiaCode
 from radiacode.transports.usb import DeviceNotFound as DeviceNotFoundUSB

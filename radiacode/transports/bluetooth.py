@@ -81,17 +81,17 @@ class Bluetooth():
 
         self.writefd = self.client.services.get_characteristic(RADIACODE_WRITEFD_UUID)
 
-        Logger.notify(f'Notifications started')
+        Logger.notify('Notifications started')
     
     async def _scan(self) -> List[Tuple[BLEDevice, AdvertisementData]]:
         """ Returns a list of Tuples of valid Radiacodes """
         radiacodes = []
 
-        Logger.info(f'Scan started...')
+        Logger.info('Scan started...')
         devices = await BleakScanner.discover(return_adv=True, cb=dict(use_bdaddr=False))
 
         for ble, adv in devices.values():
-            if "RadiaCode" in str(adv.local_name):
+            if 'RadiaCode' in str(adv.local_name):
                 radiacodes.append((ble, adv))
 
         if len(radiacodes) == 0:
@@ -132,10 +132,10 @@ class Bluetooth():
         #print(f'{tok} Notification: {characteristic.description}: {self._resp_buffer}')
         
     async def execute(self, req) -> BytesBuffer:
-        if self.client is None or self.client.is_connected == False:
+        if self.client is None or self.client.is_connected is False:
             await self.client.connect()
 
-        if self.client.is_connected == False:
+        if self.client.is_connected is False:
             raise DeviceNotFound('Connection to the device not active')
 
         # Request data

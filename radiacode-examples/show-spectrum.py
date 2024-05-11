@@ -42,8 +42,8 @@ import argparse
 import sys
 import time
 import numpy as np
-import yaml, asyncio
-import matplotlib as mpl
+import yaml
+import asyncio
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 

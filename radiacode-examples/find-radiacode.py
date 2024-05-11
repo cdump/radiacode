@@ -17,5 +17,5 @@ async def main():
     else:
         Logger.notify(f'{len(radiacodes)} Radiacode(s) found')
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     asyncio.run(main())
