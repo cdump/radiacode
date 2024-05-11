@@ -43,7 +43,6 @@ import sys
 import time
 import numpy as np
 import yaml
-import asyncio
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 
@@ -77,7 +76,7 @@ class appColors:
     auxline = 'red'
 
 
-async def plot_RC102Spectrum(args: argparse.Namespace):
+def plot_RC102Spectrum(args: argparse.Namespace):
     # Helper functions for conversion of channel numbers to energies
     global a0, a1, a2  # calibration constants
     # approx. calibration, overwritten by first retrieved spectrum
@@ -129,7 +128,7 @@ async def plot_RC102Spectrum(args: argparse.Namespace):
     # initialize and connect to RC10x device
     # ------
     try:
-        rc = await RadiaCode.connect(bluetooth_mac=bluetooth_mac, bluetooth_uuid=bluetooth_uuid, bluetooth_serial=bluetooth_serial, serial_number=serial_number)
+        rc = RadiaCode(bluetooth_mac=bluetooth_mac, bluetooth_uuid=bluetooth_uuid, bluetooth_serial=bluetooth_serial, serial_number=serial_number)
     except DeviceNotFoundBT as e:
         print(e)
         return
@@ -143,17 +142,17 @@ async def plot_RC102Spectrum(args: argparse.Namespace):
         print(e)
         return
 
-    serial = await rc.serial_number()
-    fw_version = await rc.fw_version()
-    status = await rc.status()
+    serial = rc.serial_number()
+    fw_version = rc.fw_version()
+    status = rc.status()
     status_flags = eval(status.split(':')[1])[0]
-    a0, a1, a2 = await rc.energy_calib()
+    a0, a1, a2 = rc.energy_calib()
 
     # get initial spectrum and meta-data
     if reset_device_spectrum:
-      await rc.spectrum_reset()
+      rc.spectrum_reset()
 
-    spectrum = await rc.spectrum()
+    spectrum = rc.spectrum()
 
     # print(f'### Spectrum: {spectrum}')
     counts0 = np.asarray(spectrum.counts)
@@ -284,7 +283,7 @@ async def plot_RC102Spectrum(args: argparse.Namespace):
             # dt = _t - _t0  # last time interval
             _t0 = _t
             total_time = int(10 * (_t - T0)) / 10  # active time rounded to 0.1s
-            spectrum = await rc.spectrum()
+            spectrum = rc.spectrum()
             actual_counts = np.asarray(spectrum.counts)
             if not any(actual_counts):
                 time.sleep(dt_wait)
@@ -370,7 +369,7 @@ async def plot_RC102Spectrum(args: argparse.Namespace):
             input('    type <ret> to close down graphics window  --> ')
 
         ### get dose info from device
-        #  for v in await rc.data_buf():
+        #  for v in rc.data_buf():
         #    print(v.dt.isoformat(), v)
 
 
@@ -398,4 +397,4 @@ if __name__ == '__main__':
     parser.add_argument('-H', '--history', type=int, default=500, help='Number of rate-history points to store in file')
     args = parser.parse_args()
 
-    asyncio.run(plot_RC102Spectrum(args))
+    plot_RC102Spectrum(args)

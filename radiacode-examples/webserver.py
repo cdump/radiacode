@@ -26,7 +26,7 @@ async def handle_ws(request):
 async def handle_spectrum(request):
     cn = request.app['rc_conn']
     accum = request.query.get('accum') == 'true'
-    spectrum = await (cn.spectrum_accum() if accum else cn.spectrum())
+    spectrum = await (cn.async_spectrum_accum() if accum else cn.async_spectrum())
     
     # apexcharts can't handle 0 in logarithmic view
     spectrum_data = [(channel, cnt if cnt > 0 else 0.5) for channel, cnt in enumerate(spectrum.counts)]
@@ -39,7 +39,7 @@ async def handle_spectrum(request):
 
 async def handle_spectrum_reset(request):
     cn = request.app['rc_conn']
-    await cn.spectrum_reset()
+    await cn.async_spectrum_reset()
     return web.json_response({'message': 'Spectrum reset'})
 
 async def process(app):
@@ -47,7 +47,7 @@ async def process(app):
     history = []
 
     while True:
-        databuf = await app['rc_conn'].data_buf()
+        databuf = await app['rc_conn'].async_data_buf()
 
         for v in databuf:
             if isinstance(v, RealTimeData):
@@ -82,13 +82,13 @@ async def on_startup(app):
 async def init_connection(app):
     if app['args'].bluetooth_mac:
         print('will use Bluetooth connection via MAC address')
-        app['rc_conn'] = await RadiaCode.connect(bluetooth_mac=app['args'].bluetooth_mac)
+        app['rc_conn'] = await RadiaCode.async_init(bluetooth_mac=app['args'].bluetooth_mac)
     elif app['args'].bluetooth_uuid:
         print('will use Bluetooth connection via UUID')
-        app['rc_conn'] = await RadiaCode.connect(bluetooth_uuid=app['args'].bluetooth_uuid)
+        app['rc_conn'] = await RadiaCode.async_init(bluetooth_uuid=app['args'].bluetooth_uuid)
     else:
         print('will use USB connection')
-        app['rc_conn'] = await RadiaCode.connect()
+        app['rc_conn'] = await RadiaCode.async_init()
 
 def main():
     parser = argparse.ArgumentParser()

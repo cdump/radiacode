@@ -24,7 +24,7 @@ class Bluetooth():
         self._resp_size = 0
         self._response = None
         self.client = None
-        self._response_event = asyncio.Event()
+        #self._response_event = asyncio.Event()
 
         self.bluetooth_mac = bluetooth_mac # Only for Windows and Linux
         self.bluetooth_serial = bluetooth_serial
@@ -42,7 +42,7 @@ class Bluetooth():
             if len(self.bluetooth_serial) < 6:
                 Logger.warning('To improve reliability, try to provide at least 6 digits of your Radiacode serial number')
 
-            bt_devices = await self._scan()
+            bt_devices = await self._async_scan()
 
             if len(bt_devices) == 0:
                 raise DeviceNotFound('No Radiacodes found. Check that bluetooth is enabled and that the Radiacode is not connected to another device.')
@@ -83,7 +83,10 @@ class Bluetooth():
 
         Logger.notify('Notifications started')
     
-    async def _scan(self) -> List[Tuple[BLEDevice, AdvertisementData]]:
+    def _scan(self) -> List[Tuple[BLEDevice, AdvertisementData]]:
+        return asyncio.run(self._async_scan())
+
+    async def _async_scan(self) -> List[Tuple[BLEDevice, AdvertisementData]]:
         """ Returns a list of Tuples of valid Radiacodes """
         radiacodes = []
 
