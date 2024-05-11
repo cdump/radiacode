@@ -1,10 +1,13 @@
 import struct
 import platform
 
+
 class DeviceNotFound(Exception):
     pass
 
+
 if platform.system() == 'Darwin':
+
     class Bluetooth:
         def __init__(self):
             # Create an empty class if we are on MacOS
