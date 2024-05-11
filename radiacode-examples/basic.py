@@ -5,6 +5,7 @@ from radiacode import RadiaCode
 from radiacode.transports.usb import DeviceNotFound as DeviceNotFoundUSB
 from radiacode.transports.bluetooth import DeviceNotFound as DeviceNotFoundBT
 
+
 def main(args: argparse.Namespace):
     try:
         if args.bluetooth_mac:
@@ -53,13 +54,31 @@ def main(args: argparse.Namespace):
             print(v.dt.isoformat(), v)
         time.sleep(2)
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--bluetooth-mac', type=str, required=False, help='Radiacode Bluetooth MAC address (e.g. 00:11:22:33:44:55). MacOS does not support BT MACs, use Serial Number or UUID instead.')
-    parser.add_argument('--bluetooth-serial', type=str, required=False, help='Connect via Bluetooth using Radiacode Serial (e.g. "RC-10x-xxxxxx").')
-    parser.add_argument('--bluetooth-uuid', type=str, required=False, help='Connect via Bluetooth using Radiacode UUID (e.g. "11111111-2222-3333-4444-56789ABCDEF").')
-    parser.add_argument('--serial', type=str, required=False, help='Connect via USB using Radiacode Serial (e.g. "RC-10x-xxxxxx").')
+    parser.add_argument(
+        '--bluetooth-mac',
+        type=str,
+        required=False,
+        help='Radiacode Bluetooth MAC address (e.g. 00:11:22:33:44:55). MacOS does not support BT MACs, use Serial Number or UUID instead.',
+    )
+    parser.add_argument(
+        '--bluetooth-serial',
+        type=str,
+        required=False,
+        help='Connect via Bluetooth using Radiacode Serial (e.g. "RC-10x-xxxxxx").',
+    )
+    parser.add_argument(
+        '--bluetooth-uuid',
+        type=str,
+        required=False,
+        help='Connect via Bluetooth using Radiacode UUID (e.g. "11111111-2222-3333-4444-56789ABCDEF").',
+    )
+    parser.add_argument(
+        '--serial', type=str, required=False, help='Connect via USB using Radiacode Serial (e.g. "RC-10x-xxxxxx").'
+    )
     parser.add_argument('--usb', type=str, required=False, help='(default) Connect via USB to the first Radiacode available.')
 
     args = parser.parse_args()

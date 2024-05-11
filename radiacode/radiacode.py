@@ -12,9 +12,11 @@ from radiacode.transports.bluetooth import Bluetooth
 from radiacode.transports.usb import Usb
 from radiacode.types import CTRL, VS, VSFR, DisplayDirection, DoseRateDB, Event, RareData, RawData, RealTimeData, Spectrum
 
+
 # channel number -> kEv
 def spectrum_channel_to_energy(channel_number: int, a0: float, a1: float, a2: float) -> float:
     return a0 + a1 * channel_number + a2 * channel_number * channel_number
+
 
 class RadiaCode:
     _connection: Union[Bluetooth, Usb]
@@ -24,6 +26,7 @@ class RadiaCode:
         rc = Radiacode()
         serial = rc.serial_number()
     """
+
     def __init__(
         self,
         bluetooth_mac: Optional[str] = None,
@@ -31,8 +34,8 @@ class RadiaCode:
         bluetooth_uuid: Optional[str] = None,
         serial_number: Optional[str] = None,
         ignore_firmware_compatibility_check: Optional[bool] = False,
-        async_init: Optional[bool] = False):
-
+        async_init: Optional[bool] = False,
+    ):
         self._seq = 0
         self._usb = False
         self._async_init = async_init
@@ -41,7 +44,9 @@ class RadiaCode:
         asyncio.set_event_loop(self.loop)
 
         if platform.system() == 'Darwin' and bluetooth_mac:
-            Logger.warning('You would like to establish a bluetooth connection using a MAC address, but you appear to be on a Mac.')
+            Logger.warning(
+                'You would like to establish a bluetooth connection using a MAC address, but you appear to be on a Mac.'
+            )
             Logger.warning('Apple does not expose Bluetooth MAC addresses anymore, so this method will not work.')
             Logger.warning('Try connecting to the device using another option (UUID or Serial).')
 
@@ -66,14 +71,16 @@ class RadiaCode:
         rc = Radiacode.async_init()
         serial = await rc.async_serial_number()
     """
+
     @classmethod
-    async def async_init(cls, 
-            bluetooth_mac: Optional[str] = None,
-            bluetooth_serial: Optional[str] = None,
-            bluetooth_uuid: Optional[str] = None,
-            serial_number: Optional[str] = None,
-            ignore_firmware_compatibility_check: Optional[bool] = False):
-        
+    async def async_init(
+        cls,
+        bluetooth_mac: Optional[str] = None,
+        bluetooth_serial: Optional[str] = None,
+        bluetooth_uuid: Optional[str] = None,
+        serial_number: Optional[str] = None,
+        ignore_firmware_compatibility_check: Optional[bool] = False,
+    ):
         if platform.system() == 'Darwin' and bluetooth_mac:
             Logger.warning('You want to connect over bluetooth using a MAC address, but you appear to be on a Mac.')
             Logger.warning('Apple does not expose Bluetooth MAC addresses anymore, so this method will not work.')
@@ -81,16 +88,18 @@ class RadiaCode:
 
             raise Exception('Exception: The chosen connection method does not work on this platform.')
 
-        self = cls(bluetooth_mac=bluetooth_mac, 
-                   bluetooth_serial=bluetooth_serial, 
-                   bluetooth_uuid=bluetooth_uuid,
-                   serial_number=serial_number,
-                   ignore_firmware_compatibility_check=ignore_firmware_compatibility_check,
-                   async_init=True)
-        
+        self = cls(
+            bluetooth_mac=bluetooth_mac,
+            bluetooth_serial=bluetooth_serial,
+            bluetooth_uuid=bluetooth_uuid,
+            serial_number=serial_number,
+            ignore_firmware_compatibility_check=ignore_firmware_compatibility_check,
+            async_init=True,
+        )
+
         await self._init_device()
         return self
-    
+
     async def _init_device(self):
         if self._usb is False:
             # Connect over Bluetooth
@@ -112,7 +121,7 @@ class RadiaCode:
 
         self._spectrum_format_version = 0
         lines = await self.async_configuration()
-        
+
         for line in lines.split('\n'):
             if line.startswith('SpecFormatVersion'):
                 self._spectrum_format_version = int(line.split('=')[1])
@@ -122,69 +131,68 @@ class RadiaCode:
 
     def base_time(self) -> datetime.datetime:
         return self._base_time
-    
+
     # def _execute(self, reqtype: bytes, args: Optional[bytes] = None) -> BytesBuffer:
     #     return self.loop.run_until_complete(self._async_execute(reqtype, args))
 
-    
     def read_request(self, command_id: Union[int, VS, VSFR]) -> BytesBuffer:
         return self.loop.run_until_complete(self.async_read_request(command_id))
-    
+
     def write_request(self, command_id: Union[int, VSFR], data: Optional[bytes] = None) -> None:
         return self.loop.run_until_complete(self.async_write_request(command_id, data))
-    
+
     def batch_read_vsfrs(self, vsfr_ids: List[VSFR]) -> List[int]:
         return self.loop.run_until_complete(self.async_batch_read_vsfrs(vsfr_ids))
-    
+
     def status(self) -> str:
         return self.loop.run_until_complete(self.async_status())
-    
+
     def set_local_time(self, dt: datetime.datetime) -> None:
         return self.loop.run_until_complete(self.set_local_time(dt))
-    
+
     def fw_signature(self) -> str:
         return self.loop.run_until_complete(self.async_fw_signature())
-    
+
     def fw_version(self) -> tuple[tuple[int, int, str], tuple[int, int, str]]:
         return self.loop.run_until_complete(self.async_fw_signature())
-    
+
     def hw_serial_number(self) -> str:
         return self.loop.run_until_complete(self.async_hw_serial_number())
-    
+
     def configuration(self) -> str:
         return self.loop.run_until_complete(self.async_configuration())
-    
+
     def text_message(self) -> str:
         return self.loop.run_until_complete(self.async_text_message())
-    
+
     def serial_number(self) -> str:
         return self.loop.run_until_complete(self.async_serial_number())
-        #return self.loop.run_until_complete(self.async_serial_number())
-    
+        # return self.loop.run_until_complete(self.async_serial_number())
+
     def commands(self) -> str:
         return self.loop.run_until_complete(self.async_commands())
-    
+
     def device_time(self, v: int) -> None:
         return self.loop.run_until_complete(self.async_device_time(v))
-    
+
     def data_buf(self) -> List[Union[DoseRateDB, RareData, RealTimeData, RawData, Event]]:
         return self.loop.run_until_complete(self.async_data_buf())
-    
+
     def spectrum(self) -> Spectrum:
         return self.loop.run_until_complete(self.async_spectrum())
-    
+
     def spectrum_accum(self) -> Spectrum:
         return self.loop.run_until_complete(self.async_spectrum_accum())
-    
+
     def dose_reset(self) -> None:
         return self.loop.run_until_complete(self.async_dose_reset())
-    
+
     def spectrum_reset(self) -> None:
         return self.loop.run_until_complete(self.async_spectrum_reset())
-    
+
     def energy_calib(self) -> List[float]:
         return self.loop.run_until_complete(self.async_energy_calib())
-    
+
     def set_energy_calib(self, coef: List[float]) -> None:
         return self.loop.run_until_complete(self.async_set_energy_calib(coef))
 
@@ -193,28 +201,28 @@ class RadiaCode:
 
     def set_device_on(self, on: bool):
         return self.loop.run_until_complete(self.async_set_device_on(on))
-    
+
     def set_sound_on(self, on: bool) -> None:
         return self.loop.run_until_complete(self.async_set_sound_on(on))
-    
+
     def set_vibro_on(self, on: bool) -> None:
         return self.loop.run_until_complete(self.async_set_vibro_on(on))
-    
+
     def set_sound_ctrl(self, ctrls: List[CTRL]) -> None:
         return self.loop.run_until_complete(self.async_set_sound_ctrl(ctrls))
-    
+
     def set_display_off_time(self, seconds: int) -> None:
         return self.loop.run_until_complete(self.async_set_display_off_time(seconds))
-    
+
     def set_display_brightness(self, brightness: int) -> None:
         return self.loop.run_until_complete(self.async_set_display_brightness(brightness))
-    
+
     def set_display_direction(self, direction: DisplayDirection) -> None:
         return self.loop.run_until_complete(self.async_set_display_direction(direction))
-    
+
     def set_vibro_ctrl(self, ctrls: List[CTRL]) -> None:
         return self.loop.run_until_complete(self.async_set_vibro_ctrl(ctrls))
-    
+
     async def _async_execute(self, reqtype: bytes, args: Optional[bytes] = None) -> BytesBuffer:
         assert len(reqtype) == 2
         req_seq_no = 0x80 + self._seq
@@ -233,7 +241,7 @@ class RadiaCode:
         r = await self._async_execute(b'\x26\x08', struct.pack('<I', int(command_id)))
         retcode, flen = r.unpack('<II')
         assert retcode == 1, f'{command_id}: got retcode {retcode}'
-        
+
         # HACK: workaround for new firmware bug(?)
         if r.size() == flen + 1 and r._data[-1] == 0x00:
             r._data = r._data[:-1]
@@ -296,7 +304,7 @@ class RadiaCode:
     async def async_text_message(self) -> str:
         r = await self.async_read_request(VS.TEXT_MESSAGE)
         return r.data().decode('ascii')
-    
+
     async def async_serial_number(self) -> str:
         r = await self.async_read_request(8)
         return r.data().decode('ascii')

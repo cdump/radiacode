@@ -6,14 +6,18 @@
 from radiacode.transports.bluetooth import Bluetooth
 from radiacode.logger import Logger
 
+
 def main():
     Logger.info('Looking for Radiacodes over Bluetooth')
     radiacodes = Bluetooth()._scan()
 
     if len(radiacodes) == 0:
-        Logger.error('No Radiacodes found, make sure Bluetooth is active on both your device and the Radiacode. Make sure the Radiacode is not connected to other devices.')
+        Logger.error(
+            'No Radiacodes found, make sure Bluetooth is active on both your device and the Radiacode. Make sure the Radiacode is not connected to other devices.'
+        )
     else:
         Logger.notify(f'{len(radiacodes)} Radiacode(s) found')
+
 
 if __name__ == '__main__':
     main()

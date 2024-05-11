@@ -7,6 +7,7 @@ from radiacode import RealTimeData, RadiaCode
 from radiacode.transports.usb import DeviceNotFound as DeviceNotFoundUSB
 from radiacode.transports.bluetooth import DeviceNotFound as DeviceNotFoundBT
 
+
 def sensors_data(rc_conn):
     databuf = rc_conn.data_buf()
 
@@ -44,12 +45,30 @@ async def send_data(d):
         async with session.post('https://narodmon.ru/json', json=d) as resp:
             return await resp.text()
 
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--bluetooth-mac', type=str, required=False, help='Radiacode Bluetooth MAC address (e.g. 00:11:22:33:44:55). MacOS does not support BT MACs, use Serial Number or UUID instead.')
-    parser.add_argument('--bluetooth-serial', type=str, required=False, help='Connect via Bluetooth using Radiacode Serial (e.g. "RC-10x-xxxxxx").')
-    parser.add_argument('--bluetooth-uuid', type=str, required=False, help='Connect via Bluetooth using Radiacode UUID (e.g. "11111111-2222-3333-4444-56789ABCDEF").')
-    parser.add_argument('--serial', type=str, required=False, help='Connect via USB using Radiacode Serial (e.g. "RC-10x-xxxxxx").')
+    parser.add_argument(
+        '--bluetooth-mac',
+        type=str,
+        required=False,
+        help='Radiacode Bluetooth MAC address (e.g. 00:11:22:33:44:55). MacOS does not support BT MACs, use Serial Number or UUID instead.',
+    )
+    parser.add_argument(
+        '--bluetooth-serial',
+        type=str,
+        required=False,
+        help='Connect via Bluetooth using Radiacode Serial (e.g. "RC-10x-xxxxxx").',
+    )
+    parser.add_argument(
+        '--bluetooth-uuid',
+        type=str,
+        required=False,
+        help='Connect via Bluetooth using Radiacode UUID (e.g. "11111111-2222-3333-4444-56789ABCDEF").',
+    )
+    parser.add_argument(
+        '--serial', type=str, required=False, help='Connect via USB using Radiacode Serial (e.g. "RC-10x-xxxxxx").'
+    )
     parser.add_argument('--usb', type=str, required=False, help='(default) Connect via USB to the first Radiacode available.')
     parser.add_argument('--interval', type=int, required=False, default=600, help='Send interval, seconds')
     args = parser.parse_args()
@@ -84,9 +103,9 @@ def main():
         return
 
     mac = args.bluetooth_mac.replace(':', '-') if args.bluetooth_mac else '00-00-00-00-00-00'
-    
+
     device_data = {
-        'mac':  mac,
+        'mac': mac,
         'name': 'RadiaCode-101',
     }
 

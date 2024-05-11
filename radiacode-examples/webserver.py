@@ -7,8 +7,10 @@ from aiohttp import web
 
 from radiacode import RadiaCode, RealTimeData
 
+
 async def handle_index(request):
     return web.FileResponse(pathlib.Path(__file__).parent.absolute() / 'webserver.html')
+
 
 async def handle_ws(request):
     ws = web.WebSocketResponse()
@@ -23,24 +25,29 @@ async def handle_ws(request):
 
     return ws
 
+
 async def handle_spectrum(request):
     cn = request.app['rc_conn']
     accum = request.query.get('accum') == 'true'
     spectrum = await (cn.async_spectrum_accum() if accum else cn.async_spectrum())
-    
+
     # apexcharts can't handle 0 in logarithmic view
     spectrum_data = [(channel, cnt if cnt > 0 else 0.5) for channel, cnt in enumerate(spectrum.counts)]
-    
-    return web.json_response({
-        'coef': [spectrum.a0, spectrum.a1, spectrum.a2],
-        'duration': spectrum.duration.total_seconds(),
-        'series': [{'name': 'spectrum', 'data': spectrum_data}],
-    })
+
+    return web.json_response(
+        {
+            'coef': [spectrum.a0, spectrum.a1, spectrum.a2],
+            'duration': spectrum.duration.total_seconds(),
+            'series': [{'name': 'spectrum', 'data': spectrum_data}],
+        }
+    )
+
 
 async def handle_spectrum_reset(request):
     cn = request.app['rc_conn']
     await cn.async_spectrum_reset()
     return web.json_response({'message': 'Spectrum reset'})
+
 
 async def process(app):
     max_history_size = 128
@@ -55,7 +62,7 @@ async def process(app):
 
         history.sort(key=lambda x: x.dt)
         history = history[-max_history_size:]
-        
+
         jdata = json.dumps(
             {
                 'series': [
@@ -75,9 +82,11 @@ async def process(app):
         await asyncio.gather(*(ws.send_str(jdata) for ws in app['ws_clients']))
         await asyncio.sleep(1.0)
 
+
 async def on_startup(app):
     app['process_task'] = asyncio.create_task(process(app))
     app['ws_clients'] = []
+
 
 async def init_connection(app):
     if app['args'].bluetooth_mac:
@@ -89,6 +98,7 @@ async def init_connection(app):
     else:
         print('will use USB connection')
         app['rc_conn'] = await RadiaCode.async_init()
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -102,16 +112,18 @@ def main():
     app['args'] = args
     app.on_startup.append(init_connection)
     app.on_startup.append(on_startup)
-    
-    app.add_routes([
-        web.get('/', handle_index),
-        web.get('/spectrum', handle_spectrum),
-        web.post('/spectrum/reset', handle_spectrum_reset),
-        web.get('/ws', handle_ws),
-    ])
+
+    app.add_routes(
+        [
+            web.get('/', handle_index),
+            web.get('/spectrum', handle_spectrum),
+            web.post('/spectrum/reset', handle_spectrum_reset),
+            web.get('/ws', handle_ws),
+        ]
+    )
 
     web.run_app(app, host=args.listen_host, port=args.listen_port)
 
+
 if __name__ == '__main__':
     main()
-
