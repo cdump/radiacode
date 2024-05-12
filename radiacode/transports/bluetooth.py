@@ -26,6 +26,8 @@ class Bluetooth:
         self._resp_size = 0
         self._response = None
         self.client = None
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
         # self._response_event = asyncio.Event()
 
         self.bluetooth_mac = bluetooth_mac  # Only for Windows and Linux
@@ -88,7 +90,7 @@ class Bluetooth:
         Logger.notify('Notifications started')
 
     def _scan(self) -> List[Tuple[BLEDevice, AdvertisementData]]:
-        return asyncio.run(self._async_scan())
+        return self.loop.run_until_complete(self._async_scan())
 
     async def _async_scan(self) -> List[Tuple[BLEDevice, AdvertisementData]]:
         """Returns a list of Tuples of valid Radiacodes"""

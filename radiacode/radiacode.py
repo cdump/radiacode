@@ -148,7 +148,7 @@ class RadiaCode:
         return self.loop.run_until_complete(self.async_status())
 
     def set_local_time(self, dt: datetime.datetime) -> None:
-        return self.loop.run_until_complete(self.set_local_time(dt))
+        return self.loop.run_until_complete(self.async_set_local_time(dt))
 
     def fw_signature(self) -> str:
         return self.loop.run_until_complete(self.async_fw_signature())
@@ -167,7 +167,6 @@ class RadiaCode:
 
     def serial_number(self) -> str:
         return self.loop.run_until_complete(self.async_serial_number())
-        # return self.loop.run_until_complete(self.async_serial_number())
 
     def commands(self) -> str:
         return self.loop.run_until_complete(self.async_commands())
