@@ -1,5 +1,6 @@
 import argparse
 import time
+import platform
 
 from radiacode import RadiaCode
 from radiacode.transports.usb import DeviceNotFound as DeviceNotFoundUSB

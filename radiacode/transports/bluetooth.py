@@ -153,6 +153,6 @@ class Bluetooth:
 
         # await self.client.stop_notify(notif)
 
-        br = BytesBuffer(self._response)
-        self._response = None
-        return br
+            br = BytesBuffer(self._response)
+            self._response = None
+            return br
