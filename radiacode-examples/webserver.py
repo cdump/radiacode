@@ -6,8 +6,10 @@ import pathlib
 from aiohttp import web
 from radiacode import RadiaCode, RealTimeData
 
+
 async def handle_index(request):
     return web.FileResponse(pathlib.Path(__file__).parent.absolute() / 'webserver.html')
+
 
 async def handle_ws(request):
     ws = web.WebSocketResponse()
