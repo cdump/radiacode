@@ -17,6 +17,8 @@ async def handle_ws(request):
     try:
         async for _ in ws:
             pass
+    except Exception as e:
+        print(f'Unexpected error in websocket: {str(e)}')
     finally:
         request.app['ws_clients'].remove(ws)
 
@@ -26,7 +28,12 @@ async def handle_ws(request):
 async def handle_spectrum(request):
     cn = request.app['rc_conn']
     accum = request.query.get('accum') == 'true'
-    spectrum = await (cn.async_spectrum_accum() if accum else cn.async_spectrum())
+
+    try:
+        spectrum = await (cn.async_spectrum_accum() if accum else cn.async_spectrum())
+    except Exception as e:
+        print(f'Unexpected error while fetching data: {str(e)}')
+        return web.json_response({'error': str(e)}, status=500)
 
     # apexcharts can't handle 0 in logarithmic view
     spectrum_data = [(channel, cnt if cnt > 0 else 0.5) for channel, cnt in enumerate(spectrum.counts)]

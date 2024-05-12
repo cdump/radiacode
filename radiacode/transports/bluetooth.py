@@ -137,8 +137,7 @@ class Bluetooth:
             self._resp_buffer = b''
 
         # self._response_event.set()
-
-        # print(f'{tok} Notification: {characteristic.description}: {self._resp_buffer}')
+        # Logger.notify(f'Notification: {characteristic.description}: {self._resp_buffer}')
 
     async def execute(self, req) -> BytesBuffer:
         if self.client is None or self.client.is_connected is False:
@@ -151,8 +150,10 @@ class Bluetooth:
         self._response = []
         await self.client.write_gatt_char(self.writefd, req, response=False)
         await asyncio.sleep(1.5)
-        # await self._response_event.wait()
 
+        # If we knew how much data to expect from every request, we could monitor
+        # for that in handleNotification(), rather than sleeping
+        # await self._response_event.wait()
         # await self.client.stop_notify(notif)
 
         br = BytesBuffer(self._response)
