@@ -10,8 +10,7 @@ class TestRadiaCodeIntegration(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Connect to the device only once
-        #cls.rc = RadiaCode(bluetooth_serial='RadiaCode-10')
-        cls.rc = RadiaCode(bluetooth_uuid='C646AE3C-A4A6-AF97-CC85-56BCDABBE730')
+        cls.rc = RadiaCode(bluetooth_serial='RadiaCode-10')
 
     def test_serial_number_integration(self):
         serial_number = self.rc.serial_number()
@@ -84,10 +83,8 @@ class TestRadiaCodeIntegration(unittest.TestCase):
         self.assertIn('flags: ', status)
 
     def test_commands_integration(self):
-        # Act
         commands = self.rc.commands()
-        
-        # Assert
+
         self.assertIsInstance(commands, str)
         self.assertIn('VSFR_DEVICE_CTRL', commands)
         self.assertIn('VSFR_SYS_MCU_TEMP', commands)
