@@ -1,7 +1,7 @@
 import unittest
 import datetime
 from radiacode.radiacode import RadiaCode
-from radiacode.types import CTRL, VS, VSFR, DisplayDirection, DoseRateDB, Event, RareData, RawData, RealTimeData, Spectrum
+from radiacode.types import DoseRateDB, Event, RareData, RawData, RealTimeData, Spectrum
 
 class TestRadiaCodeIntegration(unittest.TestCase):
     """ 
