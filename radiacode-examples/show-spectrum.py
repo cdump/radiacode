@@ -43,13 +43,15 @@ import sys
 import time
 import numpy as np
 import yaml
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
+
 from radiacode import RadiaCode
+from radiacode.transports.usb import DeviceNotFound as DeviceNotFoundUSB
+from radiacode.transports.bluetooth import DeviceNotFound as DeviceNotFoundBT
 
 # set backend and matplotlib style
-mpl.use('Qt5Agg')
+# mpl.use('Qt5Agg')
 plt.style.use('dark_background')
 
 # some constants
@@ -74,7 +76,7 @@ class appColors:
     auxline = 'red'
 
 
-def plot_RC102Spectrum():
+def plot_RC102Spectrum(args: argparse.Namespace):
     # Helper functions for conversion of channel numbers to energies
     global a0, a1, a2  # calibration constants
     # approx. calibration, overwritten by first retrieved spectrum
@@ -104,59 +106,58 @@ def plot_RC102Spectrum():
 
     # end helpers ---------------------------------------
 
-    # ------
-    # parse command line arguments
-    # ------
-    parser = argparse.ArgumentParser(
-        description='Read and display gamma energy spectrum from RadioCode 102, '
-        + 'show differential and updated cumulative spectrum, '
-        + 'optionally store data to file in yaml format.'
-    )
-    parser.add_argument('-b', '--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of device')
-    parser.add_argument('-s', '--serial-number', type=str, required=False, help='serial number of device')
-    parser.add_argument('-r', '--restart', action='store_true', help='restart spectrum accumulation')
-    parser.add_argument('-R', '--Reset', action='store_true', help='reset spectrum stored in device')
-    parser.add_argument('-q', '--quiet', action='store_true', help='no status output to terminal')
-    parser.add_argument('-i', '--interval', type=float, default=1.0, help='update interval')
-    parser.add_argument('-f', '--file', type=str, default='', help='file to store results')
-    parser.add_argument('-t', '--time', type=int, default=36000, help='run time in seconds')
-    parser.add_argument('-H', '--history', type=int, default=500, help='number of rate-history points to store in file')
-    args = parser.parse_args()
-
     bluetooth_mac = args.bluetooth_mac
+    bluetooth_uuid = args.bluetooth_uuid
+    bluetooth_serial = args.bluetooth_serial
     serial_number = args.serial_number
     restart_accumulation = args.restart
     reset_device_spectrum = args.Reset
     quiet = args.quiet
     dt_wait = args.interval
     timestamp = time.strftime('%y%m%d-%H%M', time.localtime())
+
     print(args.file)
+
     filename = args.file + '_' + timestamp + '.yaml' if args.file != '' else ''
     NHistory = args.history
     run_time = args.time
     rate_history = np.zeros(NHistory)
 
-    if not quiet:
-        print(f'\n *==* script {sys.argv[0]} executing')
-        if bluetooth_mac is not None:
-            print(f'    connecting via Bluetooth, MAC {bluetooth_mac}')
-        elif serial_number is not None:
-            print(f'    connect via USB to device with SN {serial_number}')
-        else:
-            print('    connect via USB')
-
     # ------
     # initialize and connect to RC10x device
     # ------
-    rc = RadiaCode(bluetooth_mac=bluetooth_mac, serial_number=serial_number)
+    try:
+        rc = RadiaCode(
+            bluetooth_mac=bluetooth_mac,
+            bluetooth_uuid=bluetooth_uuid,
+            bluetooth_serial=bluetooth_serial,
+            serial_number=serial_number,
+        )
+    except DeviceNotFoundBT as e:
+        print(e)
+        return
+    except DeviceNotFoundUSB:
+        print('Radiacode not found, check your USB connection')
+        return
+    except ValueError as e:
+        print(e)
+        return
+    except Exception as e:
+        print(e)
+        return
+
     serial = rc.serial_number()
     fw_version = rc.fw_version()
-    status_flags = eval(rc.status().split(':')[1])[0]
+    status = rc.status()
+    status_flags = eval(status.split(':')[1])[0]
     a0, a1, a2 = rc.energy_calib()
+
     # get initial spectrum and meta-data
     if reset_device_spectrum:
         rc.spectrum_reset()
+
     spectrum = rc.spectrum()
+
     # print(f'### Spectrum: {spectrum}')
     counts0 = np.asarray(spectrum.counts)
     NChannels = len(counts0)
@@ -377,4 +378,53 @@ def plot_RC102Spectrum():
 
 
 if __name__ == '__main__':
-    plot_RC102Spectrum()
+    parser = argparse.ArgumentParser()
+
+    # ------
+    # parse command line arguments
+    # ------
+    parser = argparse.ArgumentParser(
+        description='Read and display gamma energy spectrum from RadioCode 102, '
+        + 'show differential and updated cumulative spectrum, '
+        + 'optionally store data to file in yaml format.'
+    )
+    parser.add_argument(
+        '-b',
+        '--bluetooth-mac',
+        type=str,
+        required=False,
+        help='Radiacode Bluetooth MAC address (e.g. 00:11:22:33:44:55). MacOS does not support BT MACs, use Serial Number or UUID instead.',
+    )
+    parser.add_argument(
+        '-u',
+        '--bluetooth-uuid',
+        type=str,
+        required=False,
+        help='Connect via Bluetooth using Radiacode UUID (e.g. "11111111-2222-3333-4444-56789ABCDEF").',
+    )
+    parser.add_argument(
+        '-e',
+        '--bluetooth-serial',
+        type=str,
+        required=False,
+        help='Connect via Bluetooth using Radiacode Serial (e.g. "RC-10x-xxxxxx").',
+    )
+    parser.add_argument(
+        '-s', '--serial-number', type=str, required=False, help='Connect via USB using Radiacode Serial (e.g. "RC-10x-xxxxxx").'
+    )
+    parser.add_argument('-r', '--restart', action='store_true', help='Restart spectrum accumulation')
+    parser.add_argument('-R', '--Reset', action='store_true', help='Reset spectrum stored in device')
+    parser.add_argument('-q', '--quiet', action='store_true', help='No status output to terminal')
+    parser.add_argument('-i', '--interval', type=float, default=1.0, help='Update interval (s)')
+    parser.add_argument(
+        '-f',
+        '--file',
+        type=str,
+        default='',
+        help='Filename to store results (.yaml extension will be automatically added to the name)',
+    )
+    parser.add_argument('-t', '--time', type=int, default=36000, help='Run time in seconds')
+    parser.add_argument('-H', '--history', type=int, default=500, help='Number of rate-history points to store in file')
+    args = parser.parse_args()
+
+    plot_RC102Spectrum(args)

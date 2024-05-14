@@ -1,28 +1,29 @@
 import argparse
 import time
+import asyncio
 
 from radiacode import RadiaCode
 from radiacode.transports.usb import DeviceNotFound as DeviceNotFoundUSB
 from radiacode.transports.bluetooth import DeviceNotFound as DeviceNotFoundBT
 
 
-def main(args: argparse.Namespace):
+async def main(args: argparse.Namespace):
     try:
         if args.bluetooth_mac:
             print(f'Connecting to Radiacode via Bluetooth (MAC address: {args.bluetooth_mac})')
-            rc = RadiaCode(bluetooth_mac=args.bluetooth_mac)
+            rc = await RadiaCode.async_init(bluetooth_mac=args.bluetooth_mac)
         elif args.bluetooth_uuid:
             print(f'Connecting to Radiacode via Bluetooth (UUID: {args.bluetooth_uuid})')
-            rc = RadiaCode(bluetooth_uuid=args.bluetooth_uuid)
+            rc = await RadiaCode.async_init(bluetooth_uuid=args.bluetooth_uuid)
         elif args.bluetooth_serial:
             print(f'Connecting to Radiacode via Bluetooth (Serial: {args.bluetooth_serial})')
-            rc = RadiaCode(bluetooth_serial=args.bluetooth_serial)
+            rc = await RadiaCode.async_init(bluetooth_serial=args.bluetooth_serial)
         elif args.serial:
             print(f'Connecting to Radiacode via USB (Serial: {args.serial})')
-            rc = RadiaCode(serial_number=args.serial)
+            rc = await RadiaCode.async_init(serial_number=args.serial)
         else:
             print('Connecting to Radiacode via USB')
-            rc = RadiaCode()
+            rc = await RadiaCode.async_init()
     except DeviceNotFoundBT as e:
         print(e)
         return
@@ -36,21 +37,21 @@ def main(args: argparse.Namespace):
         print(e)
         return
 
-    serial = rc.serial_number()
+    serial = await rc.async_serial_number()
     print(f'### Serial number: {serial}')
     print('--------')
 
-    fw_version = rc.fw_version()
+    fw_version = await rc.async_fw_version()
     print(f'### Firmware: {fw_version}')
     print('--------')
 
-    spectrum = rc.spectrum()
+    spectrum = await rc.async_spectrum()
     print(f'### Spectrum: {spectrum}')
     print('--------')
 
     print('### DataBuf:')
     while True:
-        for v in rc.data_buf():
+        for v in await rc.async_data_buf():
             print(v.dt.isoformat(), v)
         time.sleep(2)
 
@@ -83,4 +84,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    main(args)
+    asyncio.run(main(args))

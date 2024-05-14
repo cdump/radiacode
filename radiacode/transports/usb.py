@@ -27,26 +27,31 @@ class Usb:
             # usb.core.find(..., serial_number=None) will attempt to match against a value of None,
             # rather than ignoring it as a match condition.
             self._device = usb.core.find(idVendor=_vid, idProduct=_pid)
+
         self._timeout_ms = timeout_ms
+
         if self._device is None:
             raise DeviceNotFound
+
         while True:
             try:
                 self._device.read(0x81, 256, timeout=100)
             except usb.core.USBTimeoutError:
                 break
 
-    def execute(self, request: bytes) -> BytesBuffer:
+    async def execute(self, request: bytes) -> BytesBuffer:
         self._device.write(0x1, request)
 
         trials = 0
         max_trials = 3
+
         while trials < max_trials:  # repeat until non-zero lenght data received
             data = self._device.read(0x81, 256, timeout=self._timeout_ms).tobytes()
             if len(data) != 0:
                 break
             else:
                 trials += 1
+
         if trials >= max_trials:
             raise MultipleUSBReadFailure(str(trials) + ' USB Read Failures in sequence')
 
