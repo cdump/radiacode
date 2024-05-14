@@ -154,7 +154,7 @@ class RadiaCode:
         return self.loop.run_until_complete(self.async_fw_signature())
 
     def fw_version(self) -> tuple[tuple[int, int, str], tuple[int, int, str]]:
-        return self.loop.run_until_complete(self.async_fw_signature())
+        return self.loop.run_until_complete(self.async_fw_version())
 
     def hw_serial_number(self) -> str:
         return self.loop.run_until_complete(self.async_hw_serial_number())
