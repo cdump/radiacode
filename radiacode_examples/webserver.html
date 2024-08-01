@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>RadiaCode demo</title>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue-apexcharts"></script>
+</head>
+<style>
+#app > div {
+  margin: 5px auto;
+  width: 80%;
+  text-align: center;
+  padding: 5px;
+  border: 1px #aaa dashed;
+}
+#app fieldset {
+  display: inline-block;
+  border: 0;
+  padding: 0;
+  margin-left: 20px;
+}
+</style>
+<body>
+<div id="app">
+  <div>
+    <apexchart type="bar" height="350" :options="spectrumChartOptions" :series="spectrum_series"></apexchart>
+    <div>
+      <fieldset>
+        <input type="checkbox" id="spectrum_x_accum" v-model="spectrum_accum">
+        <label for="spectrum_x_accum">Accumulated</label>
+      </fieldset>
+      <fieldset>
+        <input type="radio" id="spectrum_x_channel" v-bind:value="false" v-model="spectrum_energy">
+        <label for="spectrum_x_channel">Channel</label>
+
+        <input type="radio" id="spectrum_x_energy" v-bind:value="true" v-model="spectrum_energy">
+        <label for="spectrum_x_energy">Energy</label>
+      </fieldset>
+      <fieldset>
+        <input type="radio" id="spectrum_linear" v-bind:value="false" v-model="spectrum_logarithmic">
+        <label for="spectrum_linear">Linear</label>
+        <input type="radio" id="spectrum_log" v-bind:value="true" v-model="spectrum_logarithmic">
+        <label for="spectrum_log">Logarithmic</label>
+      </fieldset>
+    </div>
+    <button @click="updateSpectrum">Update spectrum</button>
+    <button @click="resetSpectrum">Reset spectrum</button>
+  </div>
+  <div>
+    <apexchart type="line" height="350" :options="ratesChartOptions" :series="rates_series"></apexchart>
+    <button @click="rates_autoupdate = !rates_autoupdate">Rates autoupdate: {{ rates_autoupdate ? "ON" : "OFF" }}</button>
+  </div>
+</div>
+
+<script>
+const common_options = {
+  chart: {
+    animations: {enabled: false},
+    zoom: {autoScaleYaxis: true},
+  },
+  tooltip: {intersect: false},
+  grid: {xaxis: {lines: {show: true}}},
+  dataLabels: {enabled: false},
+};
+var app = new Vue({
+  el: '#app',
+  components: {
+    apexchart: VueApexCharts,
+  },
+  data: function() {
+    return {
+      ws: null,
+      spectrum_duration: 0,
+      rates_autoupdate: true,
+      rates_series: [],
+      spectrum_accum: false,
+      spectrum_series: [],
+      spectrum_coef: [0, 0, 0],
+      spectrum_logarithmic: true,
+      spectrum_energy: true,
+      ratesChartOptions: {
+        ...common_options,
+        title: {text: 'CountRate & DoseRate'},
+        xaxis: {type: 'datetime'},
+        yaxis: [
+          {seriesName: 'countrate', title: {text: 'CPS'}, labels: {formatter:(v) => v.toFixed(2) + ' CPS'}},
+          {seriesName: 'doserate',  title: {text: 'μSv/h'}, labels: {formatter:(v) => v.toFixed(4) + ' μSv/h'}, opposite: true},
+        ],
+      },
+    };
+  },
+  watch: {
+    spectrum_accum() {
+      this.updateSpectrum();
+    }
+  },
+  computed: {
+    spectrumChartOptions() {
+      const a0 = this.spectrum_coef[0], a1 = this.spectrum_coef[1], a2 = this.spectrum_coef[2];
+      const fmt = this.spectrum_energy ? ((c) => (a0 + a1*c + a2*c*c).toFixed(0)) : undefined;
+      const title = this.spectrum_energy ? 'keV' : 'channel';
+      return{
+        ...common_options,
+        title: {text: `Spectrum, ${this.spectrum_duration} seconds`},
+        xaxis: {type: 'numeric', title: {text: title}, tickAmount: 25, labels: {formatter:fmt}},
+        yaxis: {logarithmic: this.spectrum_logarithmic, decimalsInFloat: 0},
+        plotOptions: {bar: {columnWidth: '95%'}},
+      };
+    },
+  },
+  created() {
+    this.ws = new WebSocket('ws://' + window.location.host + '/ws')
+    this.ws.onmessage = this.onmessage;
+    this.updateSpectrum();
+  },
+  beforeDestroy: function() {
+    this.ws.close();
+  },
+  methods: {
+    onmessage(ev) {
+      if (!this.rates_autoupdate) {
+        return;
+      }
+      const d = JSON.parse(ev.data);
+      this.rates_series = d.series;
+    },
+    updateSpectrum() {
+      fetch(`/spectrum?accum=${this.spectrum_accum}`)
+        .then(response => response.json())
+        .then(data => (this.spectrum_duration=data.duration, this.spectrum_coef=data.coef, this.spectrum_series=data.series));
+    },
+    resetSpectrum() {
+      fetch(`/spectrum/reset`, {method: 'POST'})
+        .then(r => this.updateSpectrum());
+    },
+  },
+});
+</script>
+</body>
+</html>
