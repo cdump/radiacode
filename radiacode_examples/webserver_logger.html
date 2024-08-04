@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>RadiaCode Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@3.27.3/dist/apexcharts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-apexcharts@1.6.2/dist/vue-apexcharts.min.js"></script>
+    <style>
+        #app > div {
+            margin: 5px auto;
+            width: 80%;
+            text-align: center;
+            padding: 5px;
+            border: 1px #aaa dashed;
+        }
+        #app fieldset {
+            display: inline-block;
+            border: 0;
+            padding: 0;
+            margin-left: 20px;
+        }
+        #debug-output {
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #f0f0f0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div>
+            <apexchart type="bar" height="350" :options="spectrumChartOptions" :series="spectrum_series"></apexchart>
+            <div>
+                <fieldset>
+                    <input type="checkbox" id="spectrum_x_accum" v-model="spectrum_accum">
+                    <label for="spectrum_x_accum">Accumulated</label>
+                </fieldset>
+                <fieldset>
+                    <input type="radio" id="spectrum_x_channel" :value="false" v-model="spectrum_energy">
+                    <label for="spectrum_x_channel">Channel</label>
+                    <input type="radio" id="spectrum_x_energy" :value="true" v-model="spectrum_energy">
+                    <label for="spectrum_x_energy">Energy</label>
+                </fieldset>
+                <fieldset>
+                    <input type="radio" id="spectrum_linear" :value="false" v-model="spectrum_logarithmic">
+                    <label for="spectrum_linear">Linear</label>
+                    <input type="radio" id="spectrum_log" :value="true" v-model="spectrum_logarithmic">
+                    <label for="spectrum_log">Logarithmic</label>
+                </fieldset>
+            </div>
+            <button @click="updateSpectrum">Update spectrum</button>
+            <button @click="resetSpectrum">Reset spectrum</button>
+        </div>
+        <div>
+            <apexchart type="line" height="350" :options="ratesChartOptions" :series="rates_series"></apexchart>
+            <button @click="toggleRatesAutoupdate">Rates autoupdate: {{ rates_autoupdate ? "ON" : "OFF" }}</button>
+        </div>
+        <div>
+            <label for="threshold">Notification Threshold (CPS):</label>
+            <input type="number" id="threshold" v-model.number="notificationThreshold" min="0" step="0.1">
+            <button @click="requestNotificationPermission">Enable Notifications</button>
+        </div>
+        
+        <div id="debug-output">
+            <h3>Debug Output:</h3>
+            <p>Notification Permission: {{ notificationPermission }}</p>
+            <p>Latest Count Rate: {{ latestCountRate }} CPS</p>
+            <p>Threshold: {{ notificationThreshold }} CPS</p>
+            <p>Notifications Triggered: {{ notificationsTriggered }}</p>
+            <p>Minimum Count Rate: {{ minCountRate.value.toFixed(2) }} CPS (at {{ new Date(minCountRate.time).toLocaleString() }})</p>
+            <p>Maximum Count Rate: {{ maxCountRate.value.toFixed(2) }} CPS (at {{ new Date(maxCountRate.time).toLocaleString() }})</p>
+        </div>
+    </div>
+
+    <script>
+    const commonChartOptions = {
+        chart: {
+            animations: { enabled: false },
+            zoom: { autoScaleYaxis: true },
+        },
+        tooltip: { intersect: false },
+        grid: { xaxis: { lines: { show: true } } },
+        dataLabels: { enabled: false },
+    };
+
+    new Vue({
+        el: '#app',
+        components: {
+            apexchart: VueApexCharts,
+        },
+        data() {
+            return {
+                socket: null,
+                spectrum_duration: 0,
+                rates_autoupdate: true,
+                rates_series: [],
+                spectrum_accum: false,
+                spectrum_series: [{ name: 'spectrum', data: [] }],
+                spectrum_coef: [0, 0, 0],
+                spectrum_logarithmic: true,
+                spectrum_energy: true,
+                notificationThreshold: 10,
+                notificationPermission: 'default',
+                notificationErrorMessage: '',
+                latestCountRate: 0,
+                notificationsTriggered: 0,
+                minCountRate: { value: Infinity, time: null },
+                maxCountRate: { value: -Infinity, time: null },
+            };
+        },
+        computed: {
+            spectrumChartOptions() {
+                const [a0, a1, a2] = this.spectrum_coef;
+                const fmt = this.spectrum_energy ? (c => (a0 + a1*c + a2*c*c).toFixed(0)) : undefined;
+                const title = this.spectrum_energy ? 'keV' : 'channel';
+                return {
+                    ...commonChartOptions,
+                    title: { text: `Spectrum, ${this.spectrum_duration} seconds` },
+                    xaxis: { type: 'numeric', title: { text: title }, tickAmount: 25, labels: { formatter: fmt } },
+                    yaxis: { logarithmic: this.spectrum_logarithmic, decimalsInFloat: 0 },
+                    plotOptions: { bar: { columnWidth: '95%' } },
+                };
+            },
+            ratesChartOptions() {
+                return {
+                    ...commonChartOptions,
+                    title: { text: 'CountRate & DoseRate' },
+                    xaxis: { type: 'datetime' },
+                    yaxis: [
+                        {
+                            seriesName: 'countrate',
+                            title: { text: 'CPS' },
+                            labels: { formatter: v => `${v.toFixed(2)} CPS` },
+                            min: min => Math.floor(min * 0.9),
+                            max: max => Math.ceil(max * 1.1)
+                        },
+                        {
+                            seriesName: 'doserate',
+                            title: { text: 'μSv/h' },
+                            labels: { formatter: v => `${v.toFixed(4)} μSv/h` },
+                            opposite: true
+                        },
+                    ],
+                    annotations: {
+                        yaxis: [
+                            {
+                                y: this.minCountRate.value,
+                                borderColor: '#00E396',
+                                label: {
+                                    borderColor: '#00E396',
+                                    style: { color: '#fff', background: '#00E396' },
+                                    text: `Min: ${this.minCountRate.value.toFixed(2)} CPS`
+                                }
+                            },
+                            {
+                                y: this.maxCountRate.value,
+                                borderColor: '#FF4560',
+                                label: {
+                                    borderColor: '#FF4560',
+                                    style: { color: '#fff', background: '#FF4560' },
+                                    text: `Max: ${this.maxCountRate.value.toFixed(2)} CPS`
+                                }
+                            }
+                        ]
+                    }
+                };
+            }
+        },
+        methods: {
+            initWebSocket() {
+                const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+                this.socket = new WebSocket(`${protocol}${location.host}/ws`);
+                
+                this.socket.onopen = () => console.log('WebSocket connection established');
+                this.socket.onmessage = event => {
+                    try {
+                        const data = JSON.parse(event.data);
+                        this.updateChartData(data);
+                    } catch (error) {
+                        console.error('Error parsing WebSocket data:', error);
+                    }
+                };
+                this.socket.onerror = error => console.error('WebSocket error:', error);
+                this.socket.onclose = () => console.log('WebSocket connection closed');
+            },
+            updateChartData(data) {
+                if (!this.rates_autoupdate) return;
+                
+                this.rates_series = data.series;
+                
+                if (data.latest && data.latest.countrate) {
+                    this.latestCountRate = data.latest.countrate;
+                    console.log(`Latest count rate: ${this.latestCountRate} CPS`);
+                    
+                    this.updateMinMaxCountRates();
+                    
+                    if (this.latestCountRate > this.notificationThreshold) {
+                        console.log(`Threshold exceeded: ${this.latestCountRate} > ${this.notificationThreshold}`);
+                        this.showNotification("High Radiation Alert", `Count rate (${this.latestCountRate.toFixed(2)} CPS) exceeds threshold (${this.notificationThreshold} CPS)`);
+                    }
+                }
+            },
+            updateMinMaxCountRates() {
+                if (this.latestCountRate < this.minCountRate.value) {
+                    this.minCountRate = { value: this.latestCountRate, time: Date.now() };
+                }
+                if (this.latestCountRate > this.maxCountRate.value) {
+                    this.maxCountRate = { value: this.latestCountRate, time: Date.now() };
+                }
+            },
+            async updateSpectrum() {
+                try {
+                    const response = await fetch(`/spectrum?accum=${this.spectrum_accum}`);
+                    const data = await response.json();
+                    this.spectrum_duration = data.duration;
+                    this.spectrum_coef = data.coef;
+                    this.spectrum_series = data.series;
+                } catch (error) {
+                    console.error('Error updating spectrum:', error);
+                }
+            },
+            async resetSpectrum() {
+                try {
+                    await fetch('/spectrum/reset', { method: 'POST' });
+                    await this.updateSpectrum();
+                } catch (error) {
+                    console.error('Error resetting spectrum:', error);
+                }
+            },
+            checkNotificationPermission() {
+                if (!("Notification" in window)) {
+                    this.notificationErrorMessage = "This browser does not support desktop notification";
+                    this.notificationPermission = 'notsupported';
+                } else {
+                    this.notificationPermission = Notification.permission;
+                }
+                console.log('Current notification permission:', this.notificationPermission);
+            },
+            async requestNotificationPermission() {
+                console.log("Requesting notification permission...");
+                
+                if (!("Notification" in window)) {
+                    alert("This browser does not support desktop notification");
+                    return;
+                }
+                
+                if (Notification.permission === 'denied') {
+                    alert("You have blocked notifications for this site. Please update your browser settings to allow notifications and then refresh the page.");
+                    console.log('Notifications are blocked. User needs to change browser settings.');
+                    return;
+                }
+                
+                try {
+                    const permission = await Notification.requestPermission();
+                    this.notificationPermission = permission;
+                    console.log('Notification permission:', permission);
+                    if (permission === "granted") {
+                        alert("Notifications enabled!");
+                        this.showNotification("Notifications are now enabled", "You will be alerted when radiation levels exceed the threshold.");
+                    } else if (permission === "denied") {
+                        alert("Notification permission was denied. Please allow notifications in your browser settings and refresh the page.");
+                    } else {
+                        alert("Notification permission was not granted. You may need to manually allow notifications in your browser settings.");
+                    }
+                } catch (error) {
+                    console.error('Error requesting notification permission:', error);
+                    this.notificationErrorMessage = "An error occurred while requesting permission: " + error.message;
+                }
+            },
+            showNotification(title, body) {
+                if (this.notificationPermission === "granted") {
+                    console.log('Showing notification:', title);
+                    new Notification(title, { body });
+                    this.notificationsTriggered++;
+                } else {
+                    console.log('Cannot show notification. Permission:', this.notificationPermission);
+                    if (this.notificationPermission === 'denied') {
+                        console.log('Notifications are blocked. User needs to change browser settings.');
+                    }
+                }
+            },
+            toggleRatesAutoupdate() {
+                this.rates_autoupdate = !this.rates_autoupdate;
+            }
+        },
+        mounted() {
+            this.initWebSocket();
+            this.checkNotificationPermission();
+        },
+        beforeDestroy() {
+            if (this.socket) {
+                this.socket.close();
+            }
+        }
+    });
+    </script>
+</body>
+</html>
