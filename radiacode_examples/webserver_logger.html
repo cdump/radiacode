@@ -20,7 +20,7 @@
             padding: 0;
             margin-left: 20px;
         }
-        #debug-output {
+        #status-output {
             margin-top: 20px;
             border: 1px solid #ccc;
             padding: 10px;
@@ -64,8 +64,8 @@
             <button @click="requestNotificationPermission">Enable Notifications</button>
         </div>
         
-        <div id="debug-output">
-            <h3>Debug Output:</h3>
+        <div id="status-output">
+            <h3>Status Output:</h3>
             <p>Notification Permission: {{ notificationPermission }}</p>
             <p>Latest Count Rate: {{ latestCountRate }} CPS</p>
             <p>Threshold: {{ notificationThreshold }} CPS</p>
@@ -286,9 +286,10 @@
                 this.rates_autoupdate = !this.rates_autoupdate;
             }
         },
-        mounted() {
+        async mounted() {
             this.initWebSocket();
             this.checkNotificationPermission();
+            await this.updateSpectrum(); // Call updateSpectrum at startup
         },
         beforeDestroy() {
             if (this.socket) {
