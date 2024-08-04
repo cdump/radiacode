@@ -58,3 +58,9 @@ class Usb:
             data += r
 
         return BytesBuffer(data)
+
+    def close(self):
+        """Release the USB device resources."""
+        if self._device is not None:
+            usb.util.dispose_resources(self._device)
+            self._device = None

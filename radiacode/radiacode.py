@@ -220,3 +220,6 @@ class RadiaCode:
             assert c != CTRL.CLICKS, 'CTRL.CLICKS not supported for vibro'
             flags |= int(c)
         self.write_request(VSFR.VIBRO_CTRL, struct.pack('<I', flags))
+        
+    def close(self):
+        self._connection.close()
