@@ -7,6 +7,32 @@ from aiohttp import web
 
 from radiacode import RadiaCode, RealTimeData
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of radiascan device')
+    parser.add_argument('--listen-host', type=str, required=False, default='0.0.0.0', help='listen host for webserver')
+    parser.add_argument('--listen-port', type=int, required=False, default=8102, help='listen port for webserver')
+    args = parser.parse_args()
+
+    app = web.Application()
+    app.ws_clients = []
+    if args.bluetooth_mac:
+        print('will use Bluetooth connection')
+        app.rc_conn = RadiaCode(bluetooth_mac=args.bluetooth_mac)
+    else:
+        print('will use USB connection')
+        app.rc_conn = RadiaCode()
+
+    app.on_startup.append(on_startup)
+    app.add_routes(
+        [
+            web.get('/', handle_index),
+            web.get('/spectrum', handle_spectrum),
+            web.post('/spectrum/reset', handle_spectrum_reset),
+            web.get('/ws', handle_ws),
+        ],
+    )
+    web.run_app(app, host=args.listen_host, port=args.listen_port)
 
 async def handle_index(request):
     return web.FileResponse(pathlib.Path(__file__).parent.absolute() / 'webserver.html')
@@ -79,28 +105,4 @@ async def on_startup(app):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of radiascan device')
-    parser.add_argument('--listen-host', type=str, required=False, default='0.0.0.0', help='listen host for webserver')
-    parser.add_argument('--listen-port', type=int, required=False, default=8080, help='listen port for webserver')
-    args = parser.parse_args()
-
-    app = web.Application()
-    app.ws_clients = []
-    if args.bluetooth_mac:
-        print('will use Bluetooth connection')
-        app.rc_conn = RadiaCode(bluetooth_mac=args.bluetooth_mac)
-    else:
-        print('will use USB connection')
-        app.rc_conn = RadiaCode()
-
-    app.on_startup.append(on_startup)
-    app.add_routes(
-        [
-            web.get('/', handle_index),
-            web.get('/spectrum', handle_spectrum),
-            web.post('/spectrum/reset', handle_spectrum_reset),
-            web.get('/ws', handle_ws),
-        ],
-    )
-    web.run_app(app, host=args.listen_host, port=args.listen_port)
+    main()

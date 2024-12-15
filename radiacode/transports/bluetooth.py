@@ -12,6 +12,11 @@ if platform.system() == 'Darwin':
         def __init__(self):
             # Create an empty class if we are on MacOS
             pass
+
+        def close(self):
+            # No resources to release on MacOS
+            pass
+
 else:
     from bluepy.btle import BTLEDisconnectError, DefaultDelegate, Peripheral
     from radiacode.bytes_buffer import BytesBuffer
@@ -57,3 +62,9 @@ else:
             br = BytesBuffer(self._response)
             self._response = None
             return br
+
+        def close(self):
+            """Disconnect from the Bluetooth device and release resources."""
+            if hasattr(self, 'p') and self.p is not None:
+                self.p.disconnect()
+                self.p = None
