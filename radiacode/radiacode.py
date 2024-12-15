@@ -186,7 +186,6 @@ class RadiaCode:
         self.write_request(VSFR.DEVICE_LANG, struct.pack('<I', bool(lang == 'en')))
 
     def set_device_on(self, on: bool):
-        assert not on, 'only False value accepted'
         self.write_request(VSFR.DEVICE_ON, struct.pack('<I', bool(on)))
 
     def set_sound_on(self, on: bool) -> None:
