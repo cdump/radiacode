@@ -178,7 +178,7 @@ def plot_RC102Spectrum():
     # -------
     # create a figure with two sub-plots
     fig = plt.figure('GammaSpectrum', figsize=(8.0, 8.0))
-    fig.suptitle('Radiacode: $\gamma$-ray spectrum   ' + time.asctime(), size='large', color=appColors.title)
+    fig.suptitle(r'Radiacode: $\gamma$-ray spectrum   ' + time.asctime(), size='large', color=appColors.title)
     fig.subplots_adjust(left=0.12, bottom=0.1, right=0.95, top=0.88, wspace=None, hspace=0.1)  #
     gs = fig.add_gridspec(nrows=15, ncols=1)
     mpl_active = True
