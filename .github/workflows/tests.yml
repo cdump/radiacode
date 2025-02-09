@@ -24,7 +24,7 @@ jobs:
     - name: Ruff
       run: |
         poetry install --only=dev
-        poetry run ruff radiacode radiacode-examples
+        poetry run ruff check radiacode radiacode-examples
         poetry run ruff format --check radiacode radiacode-examples
 
     # TODO
