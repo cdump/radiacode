@@ -9,14 +9,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0 # need tags to generate release notes
 
-    - name: Set up Python 3.10
+    - name: Set up Python 3.13
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: '3.13'
 
     - name: Install poetry
       run: |
@@ -25,46 +25,33 @@ jobs:
 
     - name: Install package
       run: |
+        sudo apt-get install -y libglib2.0-dev
         poetry install
 
     - name: Run ruff
       run: |
-        poetry run ruff radiacode radiacode-examples
+        poetry run ruff check radiacode radiacode-examples
         poetry run ruff format --check radiacode radiacode-examples
 
     - name: Build wheel
       id: build
       run: |
         poetry build
-        echo ::set-output name=wheel_name::radiacode-${GITHUB_REF#refs/tags/}-py3-none-any.whl
 
-    - name: Generate Release Notes
+    - name: Release Notes
       run: |
         echo '## Changes since previous release:' > changelog.md
         git log --oneline $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- [%h](https://github.com/cdump/radiacode/commit/%H) %s" >> changelog.md
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@latest
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Github Release
+      uses: softprops/action-gh-release@v2
       with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-          body_path: changelog.md
-
-    - name: Upload Release Asset
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_name: ${{ steps.build.outputs.wheel_name }}
-          asset_path: dist/${{ steps.build.outputs.wheel_name }}
-          asset_content_type: application/x-wheel+zip
+        name: Release ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+        body_path: changelog.md
+        files: |
+          dist/*
 
     - name: Publish to PyPI
       env:

@@ -1,5 +1,4 @@
 import datetime
-from typing import List, Union
 
 from radiacode.bytes_buffer import BytesBuffer
 from radiacode.types import DoseRateDB, Event, RareData, RawData, RealTimeData
@@ -8,8 +7,8 @@ from radiacode.types import DoseRateDB, Event, RareData, RawData, RealTimeData
 def decode_VS_DATA_BUF(
     br: BytesBuffer,
     base_time: datetime.datetime,
-) -> List[Union[RealTimeData, DoseRateDB, RareData, RawData, Event]]:
-    ret: List[Union[RealTimeData, DoseRateDB, RareData, RawData, Event]] = []
+) -> list[RealTimeData | DoseRateDB | RareData | RawData | Event]:
+    ret: list[RealTimeData | DoseRateDB | RareData | RawData | Event] = []
     next_seq = None
     while br.size() > 0:
         seq, eid, gid, ts_offset = br.unpack('<BBBi')
@@ -89,13 +88,13 @@ def decode_VS_DATA_BUF(
             dose_rate, flags = br.unpack('<fH')
         elif eid == 1 and gid == 1:  # ???
             samples_num, smpl_time_ms = br.unpack('<HI')
-            br.unpack(f'<{8*samples_num}x')  # skip
+            br.unpack(f'<{8 * samples_num}x')  # skip
         elif eid == 1 and gid == 2:
             samples_num, smpl_time_ms = br.unpack('<HI')
-            br.unpack(f'<{16*samples_num}x')  # skip
+            br.unpack(f'<{16 * samples_num}x')  # skip
         elif eid == 1 and gid == 3:  # ???
             samples_num, smpl_time_ms = br.unpack('<HI')
-            br.unpack(f'<{14*samples_num}x')  # skip
+            br.unpack(f'<{14 * samples_num}x')  # skip
         else:
             raise Exception(f'Uknown eid:{eid} gid:{gid}')
 

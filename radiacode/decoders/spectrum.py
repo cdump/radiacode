@@ -1,18 +1,17 @@
-from typing import List
 import datetime
 
 from radiacode.bytes_buffer import BytesBuffer
 from radiacode.types import Spectrum
 
 
-def decode_counts_v0(br: BytesBuffer) -> List[int]:
+def decode_counts_v0(br: BytesBuffer) -> list[int]:
     ret = []
     while br.size() > 0:
         ret.append(br.unpack('<I')[0])
     return ret
 
 
-def decode_counts_v1(br: BytesBuffer) -> List[int]:
+def decode_counts_v1(br: BytesBuffer) -> list[int]:
     ret = []
     last = 0
     while br.size() > 0:

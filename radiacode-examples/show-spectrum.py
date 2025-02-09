@@ -1,41 +1,41 @@
 #! /usr/bin/env python3
 """script show-spectrum.py
 
-  Reads spectrum data from Radiacode 102 device and displays and stores
-  the count rate history and the spectrum of deposited energies.
-  Data is stored in a file in human-readable yaml format.
+Reads spectrum data from Radiacode 102 device and displays and stores
+the count rate history and the spectrum of deposited energies.
+Data is stored in a file in human-readable yaml format.
 
-  Calculates and shows in an animated display:
+Calculates and shows in an animated display:
 
-   - counts:      accumulated number of counts/sec
-   - count rate:  count rate
-   - dose rate:   energy deposit in crystal, i.e. sum(counts*energies).
-   - total dose:  total sum of deposited energies
+ - counts:      accumulated number of counts/sec
+ - count rate:  count rate
+ - dose rate:   energy deposit in crystal, i.e. sum(counts*energies).
+ - total dose:  total sum of deposited energies
 
 
-  Command line options:
+Command line options:
 
-    Usage: show-spectrum.py [-h] [-b BLUETOOTH_MAC] [-r] [-R] [-q]
-            [-i INTERVAL] [-f FILE] [-t TIME] [-H HISTORY]
+  Usage: show-spectrum.py [-h] [-b BLUETOOTH_MAC] [-r] [-R] [-q]
+          [-i INTERVAL] [-f FILE] [-t TIME] [-H HISTORY]
 
-    Read and display gamma energy spectrum from RadioCode 102, 
-    show differential and updated cumulative spectrum, 
-    optionally store data to file in yaml format.  
+  Read and display gamma energy spectrum from RadioCode 102,
+  show differential and updated cumulative spectrum,
+  optionally store data to file in yaml format.
 
-    Options:
-      -h, --help          show this help message and exit
-      -b BLUETOOTH_MAC, --bluetooth-mac BLUETOOTH_MAC  bluetooth MAC address of device
-      -s SERIAL_NUMBER, --serial-number SERIAL_NUMBER  serial number of device
-      -r, --restart       restart spectrum accumulation
-      -R, --Reset         reset spectrum stored in device
-      -q, --quiet         no status output to terminal
-      -i INTERVAL, --interval INTERVAL update interval
-      -f FILE, --file FILE  file to store results
-      -t TIME, --time TIME  run time in seconds
-      -H HISTORY, --history HISTORY  number of rate-history points to store in file
+  Options:
+    -h, --help          show this help message and exit
+    -b BLUETOOTH_MAC, --bluetooth-mac BLUETOOTH_MAC  bluetooth MAC address of device
+    -s SERIAL_NUMBER, --serial-number SERIAL_NUMBER  serial number of device
+    -r, --restart       restart spectrum accumulation
+    -R, --Reset         reset spectrum stored in device
+    -q, --quiet         no status output to terminal
+    -i INTERVAL, --interval INTERVAL update interval
+    -f FILE, --file FILE  file to store results
+    -t TIME, --time TIME  run time in seconds
+    -H HISTORY, --history HISTORY  number of rate-history points to store in file
 
-   Hint: use option -R to reset spectrum data in RadiaCode device
-     
+ Hint: use option -R to reset spectrum data in RadiaCode device
+
 """
 
 import argparse

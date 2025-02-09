@@ -1,42 +1,130 @@
-## RadiaCode
+# RadiaCode Python Library
 
-[Описание на русском языке](README_ru.md)
+[![PyPI version](https://img.shields.io/pypi/v/radiacode)](https://pypi.org/project/radiacode)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This is a library to work with the radiation detector and spectrometer [RadiaCode-101](https://scan-electronics.com/dosimeters/radiacode/radiacode-101).
+Python library for interfacing with the [RadiaCode-10x](https://www.radiacode.com/) radiation detectors and spectrometers. Control your device, collect measurements, and analyze radiation data with ease.
 
-***The project is still under development and not stable. Thus, the API might change in the future.***
+## 🚀 Features
 
-Example project ([backend](radiacode-examples/webserver.py), [frontend](radiacode-examples/webserver.html)):
+- 📊 Real-time radiation measurements
+- 📈 Spectrum acquisition and analysis
+- 🔌 USB and Bluetooth connectivity
+- 🌐 Web interface example included
+- 📱 Device configuration management
+
+## 📸 Demo
+
+Interactive web interface example ([backend](radiacode-examples/webserver.py) | [frontend](radiacode-examples/webserver.html)):
+
 ![radiacode-webserver-example](./screenshot.png)
 
-### Installation and example projects
-```
-# install library together with all the dependencies for the examples, remove [examples] if you don't need them
-$ pip3 install 'radiacode[examples]' --upgrade
+## 🎮 Quick Start
 
-# launch the webserver from the screenshot above
-# bluetooth: replace with the address of your device
+### Examples
+```bash
+pip install --upgrade 'radiacode[examples]'
+```
+
+Run the web interface shown in the screenshot above:
+```bash
+# Via Bluetooth (replace with your device's address)
 $ python3 -m radiacode-examples.webserver --bluetooth-mac 52:43:01:02:03:04
-# or the same, but via usb
+
+# Via USB connection
 $ sudo python3 -m radiacode-examples.webserver
+```
 
-# simple example for outputting information to the terminal, options are similar to the webserver example
+Basic terminal output example (same options as web interface):
+```bash
 $ python3 -m radiacode-examples.basic
-
-# send data to the public monitoring project narodmon.ru
-$ python3 -m radiacode-examples.narodmon --bluetooth-mac 52:43:01:02:03:04
 ```
 
-### Development
-- install [python poetry](https://python-poetry.org/docs/#installation)
-- clone this repository
-- install and run:
+### Library Usage Example
+```bash
+pip install --upgrade radiacode
 ```
-$ poetry install
-$ poetry run python3 radiacode-examples/basic.py --bluetooth-mac 52:43:01:02:03:04 # or without --bluetooth-mac for USB connection
+```python
+from radiacode import RadiaCode, RealTimeData
+
+# Connect to device (USB by default)
+device = RadiaCode()
+
+# Get current radiation measurements
+data = device.data_buf()
+for record in data:
+    if isinstance(record, RealTimeData):
+        print(f"Dose rate: {record.dose_rate}")
+
+# Get spectrum data
+spectrum = device.spectrum()
+print(f"Live time: {spectrum.duration}s")
+print(f"Total counts: {sum(spectrum.counts)}")
+
+# Configure device
+device.set_display_brightness(5)  # 0-9 brightness level
+device.set_language('en')        # 'en' or 'ru'
 ```
 
-## MacOS
-The library used to communicate over Bluetooh (```bluepy```) is [not supported](https://github.com/IanHarvey/bluepy/issues/44) on MacOS. Only the USB connection is available on Apple devices. A ```USB Serial Number```, obtainable from the ```Device Info``` menu on the device itself, can be specified if more than one Radiacode is connected via USB at the same time.
+#### More Features
+```python
+# Bluetooth connection
+device = RadiaCode(bluetooth_mac="52:43:01:02:03:04")
 
-Make sure ```libusb``` is installed on your system, if you use ```Brew``` you can run: ```brew install libusb```
+# Connect to specific USB device
+device = RadiaCode(serial_number="YOUR_SERIAL_NUMBER")
+
+# Energy calibration
+coefficients = device.energy_calib()
+print(f"Calibration coefficients: {coefficients}")
+
+# Reset accumulated data
+device.dose_reset()
+device.spectrum_reset()
+
+# Configure device behavior
+device.set_sound_on(True)
+device.set_vibro_on(True)
+device.set_display_off_time(30)  # Auto-off after 30 seconds
+```
+
+## 🔧 Development Setup
+1. Install prerequisites:
+   ```bash
+   # Install Poetry
+   curl -sSL https://install.python-poetry.org | python3 -
+   ```
+
+2. Clone and setup:
+   ```bash
+   git clone https://github.com/cdump/radiacode.git
+   cd radiacode
+   poetry install
+   ```
+
+3. Run examples:
+   ```bash
+   poetry run python radiacode-examples/basic.py
+   ```
+
+## ⚠️ Platform-Specific Notes
+
+### MacOS
+- ✅ USB connectivity works out of the box
+- ❌ Bluetooth is not supported (bluepy limitation)
+- 📝 Required: `brew install libusb`
+
+### Linux
+- ✅ Both USB and Bluetooth fully supported
+- 📝 Required: `libusb` and Bluetooth libraries
+- 🔑 May need [udev rules](radiacode.rules) for USB access
+
+### Windows
+- ✅ USB connectivity supported
+- ✅ Bluetooth supported
+- 📝 Required: USB drivers
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
