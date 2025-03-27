@@ -10,7 +10,7 @@ jobs:
         python-version: ['3.11']
     steps:
     - uses: actions/checkout@v3
-
+          
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -28,6 +28,12 @@ jobs:
         poetry run ruff format --check radiacode radiacode-examples
 
     # TODO
+    #
+    # - name: Install OS Packages
+    #   uses: ConorMacBride/install-package@v1
+    #   with:
+    #       apt: libglib2.0-dev # needed for bluepy
+    #
     # - name: Run tests
     #   run: |
     #     poetry run pytest -ra -v
