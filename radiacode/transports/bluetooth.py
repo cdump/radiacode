@@ -6,14 +6,19 @@ class DeviceNotFound(Exception):
     pass
 
 
-if platform.system() == 'Darwin':
+_have_bluetooth = True
+try:
+    from bluepy.btle import BTLEDisconnectError, DefaultDelegate, Peripheral
+except ImportError:
+    _have_bluetooth = False
+
+if platform.system() == 'Darwin' or _have_bluetooth is False:
 
     class Bluetooth:
         def __init__(self):
             # Create an empty class if we are on MacOS
             pass
 else:
-    from bluepy.btle import BTLEDisconnectError, DefaultDelegate, Peripheral
     from radiacode.bytes_buffer import BytesBuffer
 
     class Bluetooth(DefaultDelegate):
