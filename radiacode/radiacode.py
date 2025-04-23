@@ -77,9 +77,9 @@ class RadiaCode:
 
         # init
         self.execute(b'\x07\x00', b'\x01\xff\x12\xff')
-        self._base_time = datetime.datetime.now()
-        self.set_local_time(self._base_time)
+        self.set_local_time(datetime.datetime.now())
         self.device_time(0)
+        self._base_time = datetime.datetime.now() + datetime.timedelta(seconds=128)
 
         (_, (vmaj, vmin, _)) = self.fw_version()
         if ignore_firmware_compatibility_check is False and vmaj < 4 or (vmaj == 4 and vmin < 8):
