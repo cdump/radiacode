@@ -5,16 +5,17 @@ from radiacode.types import DoseRateDB, Event, RareData, RawData, RealTimeData
 
 
 def decode_VS_DATA_BUF(
-    br: BytesBuffer,
-    base_time: datetime.datetime,
+    br: BytesBuffer, base_time: datetime.datetime, verbose: bool = False
 ) -> list[RealTimeData | DoseRateDB | RareData | RawData | Event]:
     ret: list[RealTimeData | DoseRateDB | RareData | RawData | Event] = []
     next_seq = None
-    while br.size() > 0:
+    while br.size() >= 7:
         seq, eid, gid, ts_offset = br.unpack('<BBBi')
         dt = base_time + datetime.timedelta(milliseconds=ts_offset * 10)
         if next_seq is not None and next_seq != seq:
-            raise Exception(f'seq jump, expect:{next_seq}, got:{seq}')
+            if verbose:
+                print(f'seq jump while processing {eid=} {gid=}, expect:{next_seq}, got:{seq}')
+            continue
 
         next_seq = (seq + 1) % 256
         if eid == 0 and gid == 0:  # GRP_RealTimeData
@@ -95,7 +96,7 @@ def decode_VS_DATA_BUF(
         elif eid == 1 and gid == 3:  # ???
             samples_num, smpl_time_ms = br.unpack('<HI')
             br.unpack(f'<{14 * samples_num}x')  # skip
-        else:
-            raise Exception(f'Uknown eid:{eid} gid:{gid}')
+        elif verbose:
+            raise Exception(f'Unknown eid:{eid} gid:{gid}')
 
     return ret

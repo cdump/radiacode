@@ -202,3 +202,19 @@ class CTRL(Enum):
 
     def __int__(self) -> int:
         return self.value
+
+
+class EventId(Enum):
+    TOGGLE_SIGNAL = 3
+    DOSE_RATE_RESET = 4
+    BATTERY_FULL = 7
+    CHARGE_STOP = 8
+    DOSE_RATE_ALARM1 = 9
+    DOSE_RATE_ALARM2 = 10
+    DOSE_ALARM1 = 12
+    DOSE_ALARM2 = 13
+    COUNT_RATE_ALARM1 = 20
+    COUNT_RATE_ALARM2 = 21
+
+    def __int__(self) -> int:
+        return self.value
