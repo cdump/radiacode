@@ -206,7 +206,7 @@ class CTRL(Enum):
 
 class EventId(Enum):
     TOGGLE_SIGNAL = 3
-    DOSE_RATE_RESET = 4
+    DOSE_RESET = 4
     BATTERY_FULL = 7
     CHARGE_STOP = 8
     DOSE_RATE_ALARM1 = 9
