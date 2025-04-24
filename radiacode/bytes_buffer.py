@@ -56,7 +56,7 @@ class BytesBuffer:
         """
         sz = struct.calcsize(fmt)
         if self._pos + sz > len(self._data):
-            raise Exception(f'BytesBuffer: {sz} bytes required for {fmt}, but have only {len(self._data) - self._pos}')
+            raise ValueError(f'BytesBuffer: {sz} bytes required for {fmt}, but have only {len(self._data) - self._pos}')
         self._pos += sz
         return struct.unpack_from(fmt, self._data, self._pos - sz)
 
