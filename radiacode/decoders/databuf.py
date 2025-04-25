@@ -96,7 +96,9 @@ def decode_VS_DATA_BUF(
         elif eid == 1 and gid == 3:  # ???
             samples_num, smpl_time_ms = br.unpack('<HI')
             br.unpack(f'<{14 * samples_num}x')  # skip
-        elif not ignore_errors:
-            print(f'Unknown eid:{eid} gid:{gid}')
+        else:
+            if not ignore_errors:
+                print(f'Unknown eid:{eid} gid:{gid}')
+            break
 
     return ret
