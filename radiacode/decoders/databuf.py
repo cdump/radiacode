@@ -1,20 +1,21 @@
 import datetime
 
 from radiacode.bytes_buffer import BytesBuffer
-from radiacode.types import DoseRateDB, Event, RareData, RawData, RealTimeData
+from radiacode.types import DoseRateDB, Event, EventId, RareData, RawData, RealTimeData
 
 
 def decode_VS_DATA_BUF(
-    br: BytesBuffer,
-    base_time: datetime.datetime,
+    br: BytesBuffer, base_time: datetime.datetime, ignore_errors: bool = True
 ) -> list[RealTimeData | DoseRateDB | RareData | RawData | Event]:
     ret: list[RealTimeData | DoseRateDB | RareData | RawData | Event] = []
     next_seq = None
-    while br.size() > 0:
+    while br.size() >= 7:
         seq, eid, gid, ts_offset = br.unpack('<BBBi')
         dt = base_time + datetime.timedelta(milliseconds=ts_offset * 10)
         if next_seq is not None and next_seq != seq:
-            raise Exception(f'seq jump, expect:{next_seq}, got:{seq}')
+            if not ignore_errors:
+                print(f'seq jump while processing {eid=} {gid=}, expect:{next_seq}, got:{seq} {br.size()=}')
+            break
 
         next_seq = (seq + 1) % 256
         if eid == 0 and gid == 0:  # GRP_RealTimeData
@@ -77,7 +78,7 @@ def decode_VS_DATA_BUF(
             ret.append(
                 Event(
                     dt=dt,
-                    event=event,
+                    event=EventId(event),
                     event_param1=event_param1,
                     flags=flags,
                 )
@@ -96,6 +97,8 @@ def decode_VS_DATA_BUF(
             samples_num, smpl_time_ms = br.unpack('<HI')
             br.unpack(f'<{14 * samples_num}x')  # skip
         else:
-            raise Exception(f'Uknown eid:{eid} gid:{gid}')
+            if not ignore_errors:
+                print(f'Unknown eid:{eid} gid:{gid}')
+            break
 
     return ret
