@@ -83,6 +83,22 @@ class RareData:
     flags: int
 
 
+class EventId(Enum):
+    TOGGLE_SIGNAL = 3
+    DOSE_RESET = 4
+    BATTERY_FULL = 7
+    CHARGE_STOP = 8
+    DOSE_RATE_ALARM1 = 9
+    DOSE_RATE_ALARM2 = 10
+    DOSE_ALARM1 = 12
+    DOSE_ALARM2 = 13
+    COUNT_RATE_ALARM1 = 20
+    COUNT_RATE_ALARM2 = 21
+
+    def __int__(self) -> int:
+        return self.value
+
+
 @dataclass
 class Event:
     """Device event record.
@@ -95,7 +111,7 @@ class Event:
     """
 
     dt: datetime.datetime
-    event: int
+    event: EventId
     event_param1: int
     flags: int
 
@@ -199,22 +215,6 @@ class CTRL(Enum):
     DOSE_ALARM_1 = 1 << 5
     DOSE_ALARM_2 = 1 << 6
     DOSE_OUT_OF_SCALE = 1 << 7
-
-    def __int__(self) -> int:
-        return self.value
-
-
-class EventId(Enum):
-    TOGGLE_SIGNAL = 3
-    DOSE_RESET = 4
-    BATTERY_FULL = 7
-    CHARGE_STOP = 8
-    DOSE_RATE_ALARM1 = 9
-    DOSE_RATE_ALARM2 = 10
-    DOSE_ALARM1 = 12
-    DOSE_ALARM2 = 13
-    COUNT_RATE_ALARM1 = 20
-    COUNT_RATE_ALARM2 = 21
 
     def __int__(self) -> int:
         return self.value
