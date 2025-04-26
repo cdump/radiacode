@@ -12,16 +12,16 @@ class RealTimeData:
         count_rate (float): Number of counts per second
         count_rate_err (float): Count rate error percentage
         dose_rate (int): Radiation dose rate measurement
-        dose_rate_err (int): Dose rate measurement error
+        dose_rate_err (float): Dose rate measurement error percentage
         flags (int): Status flags for the measurement
         real_time_flags (int): Real-time status flags
     """
 
     dt: datetime.datetime
     count_rate: float
-    count_rate_err: float  # %
+    count_rate_err: float
     dose_rate: int
-    dose_rate_err: int
+    dose_rate_err: float
     flags: int
     real_time_flags: int
 
@@ -50,7 +50,7 @@ class DoseRateDB:
         count (int): Total number of counts in the measurement period
         count_rate (float): Number of counts per second
         dose_rate (float): Radiation dose rate measurement
-        dose_rate_err (float): Dose rate measurement error
+        dose_rate_err (float): Dose rate measurement error percentage
         flags (int): Status flags for the measurement
     """
 
