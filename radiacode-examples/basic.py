@@ -10,9 +10,13 @@ from radiacode.transports.bluetooth import DeviceNotFound as DeviceNotFoundBT
 def main():
     parser = argparse.ArgumentParser()
 
-    if platform.system() != 'Darwin':
+    # Bluetooth is only supported on Linux via bluepy
+    if platform.system() == 'Linux':
         parser.add_argument(
-            '--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of radiascan device (e.g. 00:11:22:33:44:55)'
+            '--bluetooth-mac',
+            type=str,
+            required=False,
+            help='(Linux only) Bluetooth MAC address of radiascan device (e.g. 00:11:22:33:44:55)',
         )
 
     parser.add_argument(

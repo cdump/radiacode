@@ -29,10 +29,10 @@ pip install --upgrade 'radiacode[examples]'
 
 Run the web interface shown in the screenshot above:
 ```bash
-# Via Bluetooth (replace with your device's address)
+# Via Bluetooth (Linux only, replace with your device's address)
 $ python3 -m radiacode-examples.webserver --bluetooth-mac 52:43:01:02:03:04
 
-# Via USB connection
+# Via USB connection (Linux/MacOS/Windows)
 $ sudo python3 -m radiacode-examples.webserver
 ```
 
@@ -69,7 +69,7 @@ device.set_language('en')        # 'en' or 'ru'
 
 #### More Features
 ```python
-# Bluetooth connection
+# Bluetooth connection (Linux only)
 device = RadiaCode(bluetooth_mac="52:43:01:02:03:04")
 
 # Connect to specific USB device
@@ -118,11 +118,11 @@ device.set_display_off_time(30)  # Auto-off after 30 seconds
 ### Linux
 - ✅ Both USB and Bluetooth fully supported
 - 📝 Required: `libusb` and Bluetooth libraries
-- 🔑 May need [udev rules](radiacode.rules) for USB access
+- 🔑 May need [udev rules](radiacode.rules) for USB access without root
 
 ### Windows
 - ✅ USB connectivity supported
-- ✅ Bluetooth supported
+- ❌ Bluetooth is not supported (bluepy limitation)
 - 📝 Required: USB drivers
 
 ## License

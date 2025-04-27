@@ -175,7 +175,7 @@ description = "Python module for interfacing with BLE devices through Bluez"
 optional = false
 python-versions = "*"
 groups = ["main"]
-markers = "sys_platform != \"darwin\""
+markers = "sys_platform == \"linux\""
 files = [
     {file = "bluepy-1.3.0.tar.gz", hash = "sha256:2a71edafe103565fb990256ff3624c1653036a837dfc90e1e32b839f83971cec"},
 ]
@@ -1527,4 +1527,4 @@ examples = ["aiohttp", "matplotlib", "numpy", "prometheus-client", "pyyaml"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "1cd564eb77c206c749ee2cdfe6a62156ade88d4d7e4fc588919da2c7ac5af44e"
+content-hash = "8cc877cd2679d825deb4709e1f9f378aa4e1a9e495b3f609257cee7b08273898"
