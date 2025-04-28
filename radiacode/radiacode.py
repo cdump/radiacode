@@ -6,8 +6,8 @@ spectrum analysis.
 """
 
 import datetime
-import struct
 import platform
+import struct
 from typing import Optional
 
 from radiacode.bytes_buffer import BytesBuffer
@@ -15,7 +15,19 @@ from radiacode.decoders.databuf import decode_VS_DATA_BUF
 from radiacode.decoders.spectrum import decode_RC_VS_SPECTRUM
 from radiacode.transports.bluetooth import Bluetooth
 from radiacode.transports.usb import Usb
-from radiacode.types import CTRL, VS, VSFR, DisplayDirection, DoseRateDB, Event, RareData, RawData, RealTimeData, Spectrum
+from radiacode.types import (
+    COMMAND,
+    CTRL,
+    VS,
+    VSFR,
+    DisplayDirection,
+    DoseRateDB,
+    Event,
+    RareData,
+    RawData,
+    RealTimeData,
+    Spectrum,
+)
 
 
 def spectrum_channel_to_energy(channel_number: int, a0: float, a1: float, a2: float) -> float:
@@ -76,7 +88,7 @@ class RadiaCode:
             self._connection = Usb(serial_number=serial_number)
 
         # init
-        self.execute(b'\x07\x00', b'\x01\xff\x12\xff')
+        self.execute(COMMAND.SET_EXCHANGE, b'\x01\xff\x12\xff')
         self.set_local_time(datetime.datetime.now())
         self.device_time(0)
         self._base_time = datetime.datetime.now() + datetime.timedelta(seconds=128)
@@ -96,12 +108,11 @@ class RadiaCode:
     def base_time(self) -> datetime.datetime:
         return self._base_time
 
-    def execute(self, reqtype: bytes, args: Optional[bytes] = None) -> BytesBuffer:
-        assert len(reqtype) == 2
+    def execute(self, reqtype: COMMAND, args: Optional[bytes] = None) -> BytesBuffer:
         req_seq_no = 0x80 + self._seq
         self._seq = (self._seq + 1) % 32
 
-        req_header = reqtype + b'\x00' + struct.pack('<B', req_seq_no)
+        req_header = struct.pack('<HBB', int(reqtype), 0, req_seq_no)
         request = req_header + (args or b'')
         full_request = struct.pack('<I', len(request)) + request
 
@@ -111,7 +122,7 @@ class RadiaCode:
         return response
 
     def read_request(self, command_id: int | VS | VSFR) -> BytesBuffer:
-        r = self.execute(b'\x26\x08', struct.pack('<I', int(command_id)))
+        r = self.execute(COMMAND.RD_VIRT_STRING, struct.pack('<I', int(command_id)))
         retcode, flen = r.unpack('<II')
         assert retcode == 1, f'{command_id}: got retcode {retcode}'
         # HACK: workaround for new firmware bug(?)
@@ -122,20 +133,20 @@ class RadiaCode:
         return r
 
     def write_request(self, command_id: int | VSFR, data: Optional[bytes] = None) -> None:
-        r = self.execute(b'\x25\x08', struct.pack('<I', int(command_id)) + (data or b''))
+        r = self.execute(COMMAND.WR_VIRT_SFR, struct.pack('<I', int(command_id)) + (data or b''))
         retcode = r.unpack('<I')[0]
         assert retcode == 1
         assert r.size() == 0
 
     def batch_read_vsfrs(self, vsfr_ids: list[VSFR]) -> list[int]:
         assert len(vsfr_ids)
-        r = self.execute(b'\x2a\x08', b''.join(struct.pack('<I', int(c)) for c in vsfr_ids))
+        r = self.execute(COMMAND.RD_VIRT_SFR_BATCH, b''.join(struct.pack('<I', int(c)) for c in vsfr_ids))
         ret = [r.unpack('<I')[0] for _ in range(len(vsfr_ids))]
         assert r.size() == 0
         return ret
 
     def status(self) -> str:
-        r = self.execute(b'\x05\x00')
+        r = self.execute(COMMAND.GET_STATUS)
         flags = r.unpack('<I')
         assert r.size() == 0
         return f'status flags: {flags}'
@@ -149,10 +160,10 @@ class RadiaCode:
                 Microseconds are ignored.
         """
         d = struct.pack('<BBBBBBBB', dt.day, dt.month, dt.year - 2000, 0, dt.second, dt.minute, dt.hour, 0)
-        self.execute(b'\x04\x0a', d)
+        self.execute(COMMAND.SET_TIME, d)
 
     def fw_signature(self) -> str:
-        r = self.execute(b'\x01\x01')
+        r = self.execute(COMMAND.FW_SIGNATURE)
         signature = r.unpack('<I')[0]
         filename = r.unpack_string()
         idstring = r.unpack_string()
@@ -166,7 +177,7 @@ class RadiaCode:
                 - Boot version: (major, minor, date string)
                 - Target version: (major, minor, date string)
         """
-        r = self.execute(b'\x0a\x00')
+        r = self.execute(COMMAND.GET_VERSION)
         boot_minor, boot_major = r.unpack('<HH')
         boot_date = r.unpack_string()
         target_minor, target_major = r.unpack('<HH')
@@ -181,7 +192,7 @@ class RadiaCode:
             str: Hardware serial number formatted as hyphen-separated hexadecimal groups
                 (e.g. "12345678-9ABCDEF0")
         """
-        r = self.execute(b'\x0b\x00')
+        r = self.execute(COMMAND.GET_SERIAL)
         serial_len = r.unpack('<I')[0]
         assert serial_len % 4 == 0
         serial_groups = [r.unpack('<I')[0] for _ in range(serial_len // 4)]
@@ -202,11 +213,11 @@ class RadiaCode:
         Returns:
             str: The device serial number as an ASCII string
         """
-        r = self.read_request(8)
+        r = self.read_request(VS.SERIAL_NUMBER)
         return r.data().decode('ascii')
 
     def commands(self) -> str:
-        br = self.read_request(257)
+        br = self.read_request(VS.SFR_FILE)
         return br.data().decode('ascii')
 
     # called with 0 after init!
@@ -254,7 +265,7 @@ class RadiaCode:
         This clears the current spectrum data buffer, effectively resetting the spectrum
         measurement to start fresh.
         """
-        r = self.execute(b'\x27\x08', struct.pack('<II', int(VS.SPECTRUM), 0))
+        r = self.execute(COMMAND.WR_VIRT_STRING, struct.pack('<II', int(VS.SPECTRUM), 0))
         retcode = r.unpack('<I')[0]
         assert retcode == 1
         assert r.size() == 0
@@ -282,7 +293,7 @@ class RadiaCode:
         """
         assert len(coef) == 3
         pc = struct.pack('<fff', *coef)
-        r = self.execute(b'\x27\x08', struct.pack('<II', int(VS.ENERGY_CALIB), len(pc)) + pc)
+        r = self.execute(COMMAND.WR_VIRT_STRING, struct.pack('<II', int(VS.ENERGY_CALIB), len(pc)) + pc)
         retcode = r.unpack('<I')[0]
         assert retcode == 1
 
