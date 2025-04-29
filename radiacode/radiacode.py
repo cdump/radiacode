@@ -138,10 +138,25 @@ class RadiaCode:
         assert retcode == 1
         assert r.size() == 0
 
-    def batch_read_vsfrs(self, vsfr_ids: list[VSFR]) -> list[int]:
+    def batch_read_vsfrs(self, vsfr_ids: list[VSFR], unpack_format=None) -> list[int]:
+        """Read multiple VSFRs
+
+        Args:
+            vsfr_ids: a list of VSFRs to fetch
+            unpack_format: a `struct` format string used to unpack the response
+                into certain data types, eg. '<4x3f` to skip the first 4 bytes,
+                and interpret the remaining bytes into 3 floats.
+
+                If not given, the response is simply decoded into a list of ints.
+        """
         assert len(vsfr_ids)
-        r = self.execute(COMMAND.RD_VIRT_SFR_BATCH, b''.join(struct.pack('<I', int(c)) for c in vsfr_ids))
-        ret = [r.unpack('<I')[0] for _ in range(len(vsfr_ids))]
+        msg = [struct.pack('<I', len(vsfr_ids))]
+        msg.extend([struct.pack('<I', int(c)) for c in vsfr_ids])
+        r = self.execute(COMMAND.RD_VIRT_SFR_BATCH, b''.join(msg))
+        if unpack_format:
+            ret = r.unpack(unpack_format)
+        else:
+            ret = [r.unpack('<I')[0] for _ in range(len(vsfr_ids) + 1)]
         assert r.size() == 0
         return ret
 
