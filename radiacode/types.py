@@ -139,6 +139,32 @@ class Spectrum:
     counts: list[int]
 
 
+@dataclass
+class AlarmLimits:
+    """Alarm limits
+
+    The count rate may be per second or per minute depending on device
+    configuration. The `count_unit` attribute indicates which.
+
+    Dose rate is in micro-units (Sv or R) per hour.
+
+    Accumulated dos is in micro-units (Sv or R).
+
+    The dose unit may be Roentgen or Sievert depending on device
+    configuration. The `dose_unit` attribute indicates which. There seems
+    to be a fixed 100Sv/R conversion within the device
+    """
+
+    l1_count_rate: float
+    l2_count_rate: float
+    count_unit: str
+    l1_dose_rate: float
+    l2_dose_rate: float
+    l1_dose: float
+    l2_dose: float
+    dose_unit: str
+
+
 class DisplayDirection(Enum):
     AUTO = 0
     RIGHT = 1
