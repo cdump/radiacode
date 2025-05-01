@@ -139,25 +139,42 @@ class RadiaCode:
         assert retcode == 1
         assert r.size() == 0
 
-    def batch_read_vsfrs(self, vsfr_ids: list[VSFR], unpack_format=None) -> list[int]:
+    def batch_read_vsfrs(self, vsfr_ids: list[VSFR], unpack_format: str) -> list[int | float]:
         """Read multiple VSFRs
 
         Args:
             vsfr_ids: a list of VSFRs to fetch
-            unpack_format: a `struct` format string used to unpack the response
-                into certain data types, eg. '<4x3f` to skip the first 4 bytes,
-                and interpret the remaining bytes into 3 floats.
+            unpack_format: a `struct` format string used to unpack the response.
 
-                If not given, the response is simply decoded into a list of ints.
+        Byte order and word length indicators in unpack_format may be omitted
+        and will be removed if given, as the device uses standard size little
+        endian format.
+
+        Repeat count is not supported (use "ffff" instead of "4f") as the length
+        of the unpack_format string must equal the number of VSFRs being fetched.
         """
-        assert len(vsfr_ids)
-        msg = [struct.pack('<I', len(vsfr_ids))]
+        nvsfr = len(vsfr_ids)
+        if nvsfr == 0:
+            raise ValueError('No VSFRs specified')
+
+        if not all([isinstance(i, VSFR) for i in vsfr_ids]):
+            raise ValueError('vsfr_ids must be a list of VSFRs')
+
+        unpack_format = unpack_format.strip('@<=>!')
+        if not (isinstance(unpack_format, str) and len(unpack_format) == nvsfr):
+            raise ValueError(f'invalid unpack_format `{unpack_format}`')
+
+        msg = [struct.pack('<I', nvsfr)]
         msg.extend([struct.pack('<I', int(c)) for c in vsfr_ids])
         r = self.execute(COMMAND.RD_VIRT_SFR_BATCH, b''.join(msg))
-        if unpack_format:
-            ret = r.unpack(unpack_format)
-        else:
-            ret = [r.unpack('<I')[0] for _ in range(len(vsfr_ids) + 1)]
+
+        valid_flags = r.unpack('<I')[0]
+        expected_flags = (1 << nvsfr) - 1
+        if valid_flags != expected_flags:
+            raise ValueError(f'Unexpected validity flags, bad vsfr_id? {valid_flags:08b} != {expected_flags:08b}')
+
+        ret = [r.unpack(f'<{unpack_format[i]}')[0] for i in range(nvsfr)]
+
         assert r.size() == 0
         return ret
 
@@ -412,23 +429,20 @@ class RadiaCode:
             VSFR.DS_UNITS,
             VSFR.CR_UNITS,
         ]
-        expected_valid = (1 << len(regs)) - 1
 
-        resp = self.batch_read_vsfrs(regs)
+        resp = self.batch_read_vsfrs(regs, 'I' * len(regs))
 
-        assert resp[0] == expected_valid
-
-        dose_multiplier = 100 if resp[7] else 1
-        count_multiplier = 60 if resp[8] else 1
+        dose_multiplier = 100 if resp[6] else 1
+        count_multiplier = 60 if resp[7] else 1
         return AlarmLimits(
-            l1_count_rate=resp[1] / 10 * count_multiplier,
-            l2_count_rate=resp[2] / 10 * count_multiplier,
-            l1_dose_rate=resp[3] / dose_multiplier,
-            l2_dose_rate=resp[4] / dose_multiplier,
-            l1_dose=resp[5] / 1e6 / dose_multiplier,
-            l2_dose=resp[6] / 1e6 / dose_multiplier,
-            dose_unit='Sv' if resp[7] else 'R',
-            count_unit='cpm' if resp[8] else 'cps',
+            l1_count_rate=resp[0] / 10 * count_multiplier,
+            l2_count_rate=resp[1] / 10 * count_multiplier,
+            l1_dose_rate=resp[2] / dose_multiplier,
+            l2_dose_rate=resp[3] / dose_multiplier,
+            l1_dose=resp[4] / 1e6 / dose_multiplier,
+            l2_dose=resp[5] / 1e6 / dose_multiplier,
+            dose_unit='Sv' if resp[6] else 'R',
+            count_unit='cpm' if resp[7] else 'cps',
         )
 
     def set_alarm_limits(
