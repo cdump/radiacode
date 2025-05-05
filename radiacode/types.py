@@ -174,6 +174,10 @@ class DisplayDirection(Enum):
         return self.value
 
 
+# Conveniently, the radiacode tells us what VSFRs are available and what their
+# data types are. By reading the SFR_FILE (Special Function Register?) string,
+# we get a list of all the SFRs with their address (opcode), their size in bytes,
+# their type (int or float), and whether they're signed or not.
 class VSFR(Enum):
     DEVICE_CTRL = 0x0500
     DEVICE_LANG = 0x0502
@@ -271,6 +275,75 @@ class VSFR(Enum):
 
     def __int__(self) -> int:
         return self.value
+
+
+_VSFR_FORMATS: dict = {
+    VSFR.DEVICE_CTRL: '3xB',
+    VSFR.DEVICE_LANG: '3xB',
+    VSFR.DEVICE_ON: '3x?',
+    VSFR.DEVICE_TIME: 'I',
+    VSFR.BLE_TX_PWR: '3xB',
+    VSFR.DISP_CTRL: '3xB',
+    VSFR.DISP_BRT: '3xB',
+    VSFR.DISP_CONTR: '3xB',
+    VSFR.DISP_OFF_TIME: 'I',
+    VSFR.DISP_ON: '3x?',
+    VSFR.DISP_DIR: '3xB',
+    VSFR.DISP_BACKLT_ON: '3x?',
+    VSFR.SOUND_CTRL: '2xH',
+    VSFR.SOUND_VOL: '3xB',
+    VSFR.SOUND_ON: '3x?',
+    VSFR.VIBRO_CTRL: '3xB',
+    VSFR.VIBRO_ON: '3x?',
+    VSFR.ALARM_MODE: '3xB',
+    VSFR.MS_RUN: '3x?',
+    VSFR.PLAY_SIGNAL: '3xB',
+    VSFR.DR_LEV1_uR_h: 'I',
+    VSFR.DR_LEV2_uR_h: 'I',
+    VSFR.DS_LEV1_100uR: 'I',
+    VSFR.DS_LEV2_100uR: 'I',
+    VSFR.DS_LEV1_uR: 'I',
+    VSFR.DS_LEV2_uR: 'I',
+    VSFR.DS_UNITS: '3x?',
+    VSFR.USE_nSv_h: '3x?',
+    VSFR.CR_UNITS: '3x?',
+    VSFR.CPS_FILTER: '3xB',
+    VSFR.CR_LEV1_cp10s: 'I',
+    VSFR.CR_LEV2_cp10s: 'I',
+    VSFR.DOSE_RESET: '3x?',
+    VSFR.CHN_TO_keV_A0: 'f',
+    VSFR.CHN_TO_keV_A1: 'f',
+    VSFR.CHN_TO_keV_A2: 'f',
+    VSFR.CPS: 'I',
+    VSFR.DR_uR_h: 'I',
+    VSFR.DS_uR: 'I',
+    VSFR.TEMP_degC: 'f',
+    VSFR.RAW_TEMP_degC: 'f',
+    VSFR.TEMP_UP_degC: 'f',
+    VSFR.TEMP_DN_degC: 'f',
+    VSFR.ACC_X: '2xh',
+    VSFR.ACC_Y: '2xh',
+    VSFR.ACC_Z: '2xh',
+    VSFR.OPT: '2xH',
+    VSFR.VBIAS_mV: '2xH',
+    VSFR.COMP_LEV: '2xh',
+    VSFR.CALIB_MODE: '3x?',
+    VSFR.SYS_MCU_ID0: 'I',
+    VSFR.SYS_MCU_ID1: 'I',
+    VSFR.SYS_MCU_ID2: 'I',
+    VSFR.SYS_DEVICE_ID: 'I',
+    VSFR.SYS_SIGNATURE: 'I',
+    VSFR.SYS_RX_SIZE: '2xH',
+    VSFR.SYS_TX_SIZE: '2xH',
+    VSFR.SYS_BOOT_VERSION: 'I',
+    VSFR.SYS_TARGET_VERSION: 'I',
+    VSFR.SYS_STATUS: 'I',
+    VSFR.SYS_MCU_VREF: 'i',
+    VSFR.SYS_MCU_TEMP: 'i',
+    VSFR.DPOT_RDAC: '3xB',
+    VSFR.DPOT_RDAC_EEPROM: '3xB',
+    VSFR.DPOT_TOLER: '3xB',
+}
 
 
 class VS(Enum):
