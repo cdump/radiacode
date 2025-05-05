@@ -16,6 +16,7 @@ from radiacode.decoders.spectrum import decode_RC_VS_SPECTRUM
 from radiacode.transports.bluetooth import Bluetooth
 from radiacode.transports.usb import Usb
 from radiacode.types import (
+    _VSFR_FORMATS,
     COMMAND,
     CTRL,
     VS,
@@ -139,41 +140,50 @@ class RadiaCode:
         assert retcode == 1
         assert r.size() == 0
 
-    def batch_read_vsfrs(self, vsfr_ids: list[VSFR], unpack_format: str) -> list[int | float]:
+    def batch_read_vsfrs(self, vsfr_ids: list[VSFR]) -> tuple[int | float]:
         """Read multiple VSFRs
 
         Args:
             vsfr_ids: a list of VSFRs to fetch
-            unpack_format: a `struct` format string used to unpack the response.
 
-        Byte order and word length indicators in unpack_format may be omitted
-        and will be removed if given, as the device uses standard size little
-        endian format.
-
-        Repeat count is not supported (use "ffff" instead of "4f") as the length
-        of the unpack_format string must equal the number of VSFRs being fetched.
+        Returns a tuple of decoded items in appropriate formats, such as
+        floating point for calibration, integers for counts,
         """
         nvsfr = len(vsfr_ids)
         if nvsfr == 0:
             raise ValueError('No VSFRs specified')
 
-        if not all([isinstance(i, VSFR) for i in vsfr_ids]):
-            raise ValueError('vsfr_ids must be a list of VSFRs')
-
-        unpack_format = unpack_format.strip('@<=>!')
-        if not (isinstance(unpack_format, str) and len(unpack_format) == nvsfr):
-            raise ValueError(f'invalid unpack_format `{unpack_format}`')
-
+        # The batch read VSFR command payload is a bunch of little-endian uint32.
+        # The first one is the number of VSFRs to read, followed by the VSFR ids
+        # themselves.
         msg = [struct.pack('<I', nvsfr)]
         msg.extend([struct.pack('<I', int(c)) for c in vsfr_ids])
         r = self.execute(COMMAND.RD_VIRT_SFR_BATCH, b''.join(msg))
 
+        # The device responds with a bunch of little-endian uint32. The first one is
+        # a bitmask indicating which VSFRs were successfully read. If you request and
+        # read one VSFR successfully, the value is 0x1. For two, it's 0x3. For three,
+        # it's 0x07, and so on. If one VSFR fails to read, perhaps due to an invalid
+        # VSFR number, its bit is 0. If three VSFRs are requested, and the middle one
+        # fails, the first value would be 0b101, or 0x5 - not what would be expected.
+        # For now, we fail the read operation, but in the future we might attempt to
+        # decode the successfully read registers, but then we'd also have to identify
+        # which ones they were.
         valid_flags = r.unpack('<I')[0]
         expected_flags = (1 << nvsfr) - 1
         if valid_flags != expected_flags:
             raise ValueError(f'Unexpected validity flags, bad vsfr_id? {valid_flags:08b} != {expected_flags:08b}')
 
-        ret = [r.unpack(f'<{unpack_format[i]}')[0] for i in range(nvsfr)]
+        # the remaining data is sent as little-endian 32-bit values. We temporarily
+        # pack them into uint32...
+        tmp = r.unpack(f'<{nvsfr}I')
+
+        # ... and then unpack them into real data types
+        ret = []
+        for i, v in enumerate(tmp):
+            for x in struct.unpack(f'<{_VSFR_FORMATS[vsfr_ids[i]]}', struct.pack('<I', v)):
+                if x is not None:
+                    ret.append(x)
 
         assert r.size() == 0
         return ret
@@ -430,7 +440,7 @@ class RadiaCode:
             VSFR.CR_UNITS,
         ]
 
-        resp = self.batch_read_vsfrs(regs, 'I' * len(regs))
+        resp = self.batch_read_vsfrs(regs)
 
         dose_multiplier = 100 if resp[6] else 1
         count_multiplier = 60 if resp[7] else 1
