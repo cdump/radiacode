@@ -11,7 +11,7 @@ def decode_VS_DATA_BUF(
     next_seq = None
     while br.size() >= 7:
         seq, eid, gid, ts_offset = br.unpack('<BBBi')
-        dt = base_time + datetime.timedelta(milliseconds=ts_offset * 10)
+        dt: datetime.datetime = base_time + datetime.timedelta(milliseconds=ts_offset * 10)
         if next_seq is not None and next_seq != seq:
             if not ignore_errors:
                 print(f'seq jump while processing {eid=} {gid=}, expect:{next_seq}, got:{seq} {br.size()=}')

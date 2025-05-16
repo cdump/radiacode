@@ -1,4 +1,5 @@
 import struct
+from typing import Any
 
 
 class BytesBuffer:
@@ -13,7 +14,7 @@ class BytesBuffer:
         data (bytes): The binary data to read from.
     """
 
-    def __init__(self, data: bytes):
+    def __init__(self, data: bytes) -> None:
         """Initialize the BytesBuffer with binary data.
 
         Args:
@@ -38,7 +39,7 @@ class BytesBuffer:
         """
         return self._data[self._pos :]
 
-    def unpack(self, fmt: str) -> tuple:
+    def unpack(self, fmt: str) -> tuple[Any, ...]:
         """Unpack binary data according to the given format string.
 
         Uses the struct module's format syntax to unpack binary data from the
@@ -54,7 +55,7 @@ class BytesBuffer:
         Raises:
             Exception: If there isn't enough data remaining in the buffer for the requested format.
         """
-        sz = struct.calcsize(fmt)
+        sz: int = struct.calcsize(fmt)
         if self._pos + sz > len(self._data):
             raise ValueError(f'BytesBuffer: {sz} bytes required for {fmt}, but have only {len(self._data) - self._pos}')
         self._pos += sz
@@ -73,5 +74,5 @@ class BytesBuffer:
             Exception: If there isn't enough data in the buffer.
             UnicodeDecodeError: If the string data cannot be decoded as ASCII.
         """
-        slen = self.unpack('<B')[0]
+        slen: int = self.unpack('<B')[0]
         return self.unpack(f'<{slen}s')[0].decode('ascii')

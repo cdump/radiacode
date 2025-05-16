@@ -1,4 +1,5 @@
 import struct
+
 import usb.core
 
 from radiacode.bytes_buffer import BytesBuffer
@@ -11,15 +12,15 @@ class DeviceNotFound(Exception):
 class MultipleUSBReadFailure(Exception):
     """Raised when max. number of USB read failues reached"""
 
-    def __init__(self, message=None):
+    def __init__(self, message: str = None) -> None:
         self.message = 'Multiple USB Read Failures' if message is None else message
         super().__init__(self.message)
 
 
 class Usb:
-    def __init__(self, serial_number=None, timeout_ms=3000):
-        _vid = 0x0483
-        _pid = 0xF123
+    def __init__(self, serial_number: str = '', timeout_ms: int = 3000) -> None:
+        _vid: int = 0x0483
+        _pid: int = 0xF123
 
         if serial_number:
             self._device = usb.core.find(idVendor=_vid, idProduct=_pid, serial_number=serial_number)
@@ -39,8 +40,8 @@ class Usb:
     def execute(self, request: bytes) -> BytesBuffer:
         self._device.write(0x1, request)
 
-        trials = 0
-        max_trials = 3
+        trials: int = 0
+        max_trials: int = 3
         while trials < max_trials:  # repeat until non-zero lenght data received
             data = self._device.read(0x81, 256, timeout=self._timeout_ms).tobytes()
             if len(data) != 0:
@@ -48,9 +49,9 @@ class Usb:
             else:
                 trials += 1
         if trials >= max_trials:
-            raise MultipleUSBReadFailure(str(trials) + ' USB Read Failures in sequence')
+            raise MultipleUSBReadFailure(f'{trials} USB Read Failures in sequence')
 
-        response_length = struct.unpack_from('<I', data)[0]
+        response_length: int = struct.unpack_from('<I', data)[0]
         data = data[4:]
 
         while len(data) < response_length:
