@@ -110,12 +110,12 @@ class RadiaCode:
         return self._base_time
 
     def execute(self, reqtype: COMMAND, args: Optional[bytes] = None) -> BytesBuffer:
-        req_seq_no = 0x80 + self._seq
+        req_seq_no: int = 0x80 + self._seq
         self._seq = (self._seq + 1) % 32
 
-        req_header = struct.pack('<HBB', int(reqtype), 0, req_seq_no)
-        request = req_header + (args or b'')
-        full_request = struct.pack('<I', len(request)) + request
+        req_header: bytes = struct.pack('<HBB', int(reqtype), 0, req_seq_no)
+        request: bytes = req_header + (args or b'')
+        full_request: bytes = struct.pack('<I', len(request)) + request
 
         response = self._connection.execute(full_request)
         resp_header = response.unpack('<4s')[0]
@@ -123,7 +123,7 @@ class RadiaCode:
         return response
 
     def read_request(self, command_id: int | VS | VSFR) -> BytesBuffer:
-        r = self.execute(COMMAND.RD_VIRT_STRING, struct.pack('<I', int(command_id)))
+        r: BytesBuffer = self.execute(COMMAND.RD_VIRT_STRING, struct.pack('<I', int(command_id)))
         retcode, flen = r.unpack('<II')
         assert retcode == 1, f'{command_id}: got retcode {retcode}'
         # HACK: workaround for new firmware bug(?)
@@ -134,8 +134,8 @@ class RadiaCode:
         return r
 
     def write_request(self, command_id: int | VSFR, data: Optional[bytes] = None) -> None:
-        r = self.execute(COMMAND.WR_VIRT_SFR, struct.pack('<I', int(command_id)) + (data or b''))
-        retcode = r.unpack('<I')[0]
+        r: BytesBuffer = self.execute(COMMAND.WR_VIRT_SFR, struct.pack('<I', int(command_id)) + (data or b''))
+        retcode: int = r.unpack('<I')[0]
         assert retcode == 1
         assert r.size() == 0
 
@@ -153,7 +153,7 @@ class RadiaCode:
         Repeat count is not supported (use "ffff" instead of "4f") as the length
         of the unpack_format string must equal the number of VSFRs being fetched.
         """
-        nvsfr = len(vsfr_ids)
+        nvsfr: int = len(vsfr_ids)
         if nvsfr == 0:
             raise ValueError('No VSFRs specified')
 
@@ -164,23 +164,23 @@ class RadiaCode:
         if not (isinstance(unpack_format, str) and len(unpack_format) == nvsfr):
             raise ValueError(f'invalid unpack_format `{unpack_format}`')
 
-        msg = [struct.pack('<I', nvsfr)]
+        msg: list[bytes] = [struct.pack('<I', nvsfr)]
         msg.extend([struct.pack('<I', int(c)) for c in vsfr_ids])
-        r = self.execute(COMMAND.RD_VIRT_SFR_BATCH, b''.join(msg))
+        r: BytesBuffer = self.execute(COMMAND.RD_VIRT_SFR_BATCH, b''.join(msg))
 
-        valid_flags = r.unpack('<I')[0]
-        expected_flags = (1 << nvsfr) - 1
+        valid_flags: int = r.unpack('<I')[0]
+        expected_flags: int = (1 << nvsfr) - 1
         if valid_flags != expected_flags:
             raise ValueError(f'Unexpected validity flags, bad vsfr_id? {valid_flags:08b} != {expected_flags:08b}')
 
-        ret = [r.unpack(f'<{unpack_format[i]}')[0] for i in range(nvsfr)]
+        ret: list[int | float] = [r.unpack(f'<{unpack_format[i]}')[0] for i in range(nvsfr)]
 
         assert r.size() == 0
         return ret
 
     def status(self) -> str:
-        r = self.execute(COMMAND.GET_STATUS)
-        flags = r.unpack('<I')
+        r: BytesBuffer = self.execute(COMMAND.GET_STATUS)
+        flags: int = r.unpack('<I')[0]
         assert r.size() == 0
         return f'status flags: {flags}'
 
@@ -192,14 +192,14 @@ class RadiaCode:
                 The time components used are: year, month, day, hour, minute, second.
                 Microseconds are ignored.
         """
-        d = struct.pack('<BBBBBBBB', dt.day, dt.month, dt.year - 2000, 0, dt.second, dt.minute, dt.hour, 0)
+        d: bytes = struct.pack('<BBBBBBBB', dt.day, dt.month, dt.year - 2000, 0, dt.second, dt.minute, dt.hour, 0)
         self.execute(COMMAND.SET_TIME, d)
 
     def fw_signature(self) -> str:
-        r = self.execute(COMMAND.FW_SIGNATURE)
-        signature = r.unpack('<I')[0]
-        filename = r.unpack_string()
-        idstring = r.unpack_string()
+        r: BytesBuffer = self.execute(COMMAND.FW_SIGNATURE)
+        signature: int = r.unpack('<I')[0]
+        filename: str = r.unpack_string()
+        idstring: str = r.unpack_string()
         return f'Signature: {signature:08X}, FileName="{filename}", IdString="{idstring}"'
 
     def fw_version(self) -> tuple[tuple[int, int, str], tuple[int, int, str]]:
@@ -210,11 +210,11 @@ class RadiaCode:
                 - Boot version: (major, minor, date string)
                 - Target version: (major, minor, date string)
         """
-        r = self.execute(COMMAND.GET_VERSION)
+        r: BytesBuffer = self.execute(COMMAND.GET_VERSION)
         boot_minor, boot_major = r.unpack('<HH')
-        boot_date = r.unpack_string()
+        boot_date: str = r.unpack_string()
         target_minor, target_major = r.unpack('<HH')
-        target_date = r.unpack_string()
+        target_date: str = r.unpack_string()
         assert r.size() == 0
         return ((boot_major, boot_minor, boot_date), (target_major, target_minor, target_date.strip('\x00')))
 
@@ -225,19 +225,19 @@ class RadiaCode:
             str: Hardware serial number formatted as hyphen-separated hexadecimal groups
                 (e.g. "12345678-9ABCDEF0")
         """
-        r = self.execute(COMMAND.GET_SERIAL)
-        serial_len = r.unpack('<I')[0]
+        r: BytesBuffer = self.execute(COMMAND.GET_SERIAL)
+        serial_len: int = r.unpack('<I')[0]
         assert serial_len % 4 == 0
-        serial_groups = [r.unpack('<I')[0] for _ in range(serial_len // 4)]
+        serial_groups: list[int] = [r.unpack('<I')[0] for _ in range(serial_len // 4)]
         assert r.size() == 0
         return '-'.join(f'{v:08X}' for v in serial_groups)
 
     def configuration(self) -> str:
-        r = self.read_request(VS.CONFIGURATION)
+        r: BytesBuffer = self.read_request(VS.CONFIGURATION)
         return r.data().decode('cp1251')
 
     def text_message(self) -> str:
-        r = self.read_request(VS.TEXT_MESSAGE)
+        r: BytesBuffer = self.read_request(VS.TEXT_MESSAGE)
         return r.data().decode('ascii')
 
     def serial_number(self) -> str:
@@ -246,11 +246,11 @@ class RadiaCode:
         Returns:
             str: The device serial number as an ASCII string
         """
-        r = self.read_request(VS.SERIAL_NUMBER)
+        r: BytesBuffer = self.read_request(VS.SERIAL_NUMBER)
         return r.data().decode('ascii')
 
     def commands(self) -> str:
-        br = self.read_request(VS.SFR_FILE)
+        br: BytesBuffer = self.read_request(VS.SFR_FILE)
         return br.data().decode('ascii')
 
     # called with 0 after init!
@@ -264,7 +264,7 @@ class RadiaCode:
 
     def data_buf(self) -> list[DoseRateDB | RareData | RealTimeData | RawData | Event]:
         """Get buffered measurement data from the device."""
-        r = self.read_request(VS.DATA_BUF)
+        r: BytesBuffer = self.read_request(VS.DATA_BUF)
         return decode_VS_DATA_BUF(r, self._base_time)
 
     def spectrum(self) -> Spectrum:
@@ -273,7 +273,7 @@ class RadiaCode:
         Returns:
             Spectrum: Object containing the current spectrum data
         """
-        r = self.read_request(VS.SPECTRUM)
+        r: BytesBuffer = self.read_request(VS.SPECTRUM)
         return decode_RC_VS_SPECTRUM(r, self._spectrum_format_version)
 
     def spectrum_accum(self) -> Spectrum:
@@ -282,7 +282,7 @@ class RadiaCode:
         Returns:
             Spectrum: Object containing the accumulated spectrum data
         """
-        r = self.read_request(VS.SPEC_ACCUM)
+        r: BytesBuffer = self.read_request(VS.SPEC_ACCUM)
         return decode_RC_VS_SPECTRUM(r, self._spectrum_format_version)
 
     def dose_reset(self) -> None:
@@ -298,8 +298,8 @@ class RadiaCode:
         This clears the current spectrum data buffer, effectively resetting the spectrum
         measurement to start fresh.
         """
-        r = self.execute(COMMAND.WR_VIRT_STRING, struct.pack('<II', int(VS.SPECTRUM), 0))
-        retcode = r.unpack('<I')[0]
+        r: BytesBuffer = self.execute(COMMAND.WR_VIRT_STRING, struct.pack('<II', int(VS.SPECTRUM), 0))
+        retcode: int = r.unpack('<I')[0]
         assert retcode == 1
         assert r.size() == 0
 
@@ -312,7 +312,7 @@ class RadiaCode:
                 - a1: Linear term coefficient (keV/channel)
                 - a2: Quadratic term coefficient (keV/channel^2)
         """
-        r = self.read_request(VS.ENERGY_CALIB)
+        r: BytesBuffer = self.read_request(VS.ENERGY_CALIB)
         return list(r.unpack('<fff'))
 
     def set_energy_calib(self, coef: list[float]) -> None:
@@ -325,12 +325,12 @@ class RadiaCode:
                 - a2: Quadratic term coefficient (keV/channel^2)
         """
         assert len(coef) == 3
-        pc = struct.pack('<fff', *coef)
-        r = self.execute(COMMAND.WR_VIRT_STRING, struct.pack('<II', int(VS.ENERGY_CALIB), len(pc)) + pc)
-        retcode = r.unpack('<I')[0]
+        pc: bytes = struct.pack('<fff', *coef)
+        r: BytesBuffer = self.execute(COMMAND.WR_VIRT_STRING, struct.pack('<II', int(VS.ENERGY_CALIB), len(pc)) + pc)
+        retcode: int = r.unpack('<I')[0]
         assert retcode == 1
 
-    def set_language(self, lang='ru') -> None:
+    def set_language(self, lang: str = 'ru') -> None:
         """Set the device interface language.
 
         Args:
@@ -370,7 +370,7 @@ class RadiaCode:
         Args:
             ctrls: List of CTRL enum values specifying which events should trigger sounds
         """
-        flags = 0
+        flags: int = 0
         for c in ctrls:
             flags |= int(c)
         self.write_request(VSFR.SOUND_CTRL, struct.pack('<I', flags))
@@ -383,7 +383,7 @@ class RadiaCode:
                     Must be one of: 5, 10, 15, or 30 seconds.
         """
         assert seconds in {5, 10, 15, 30}
-        v = 3 if seconds == 30 else (seconds // 5) - 1
+        v: int = 3 if seconds == 30 else (seconds // 5) - 1
         self.write_request(VSFR.DISP_OFF_TIME, struct.pack('<I', v))
 
     def set_display_brightness(self, brightness: int) -> None:
@@ -419,7 +419,7 @@ class RadiaCode:
 
     def get_alarm_limits(self) -> AlarmLimits:
         "Retrieve the alarm limits"
-        regs = [
+        regs: list[VSFR] = [
             VSFR.CR_LEV1_cp10s,
             VSFR.CR_LEV2_cp10s,
             VSFR.DR_LEV1_uR_h,
@@ -430,10 +430,10 @@ class RadiaCode:
             VSFR.CR_UNITS,
         ]
 
-        resp = self.batch_read_vsfrs(regs, 'I' * len(regs))
+        resp: list[int] = self.batch_read_vsfrs(regs, 'I' * len(regs))
 
-        dose_multiplier = 100 if resp[6] else 1
-        count_multiplier = 60 if resp[7] else 1
+        dose_multiplier: int = 100 if resp[6] else 1
+        count_multiplier: int = 60 if resp[7] else 1
         return AlarmLimits(
             l1_count_rate=resp[0] / 10 * count_multiplier,
             l2_count_rate=resp[1] / 10 * count_multiplier,
@@ -483,12 +483,12 @@ class RadiaCode:
         unit will be set to Sv.
         """
 
-        which_limits = []
-        limit_values = []
+        which_limits: list[VSFR] = []
+        limit_values: list[int] = []
 
-        dose_multiplier = 100 if dose_unit_sv is True else 1
+        dose_multiplier: int = 100 if dose_unit_sv is True else 1
         if isinstance(count_unit_cpm, bool):
-            count_multiplier = 1 / 6 if count_unit_cpm else 10
+            count_multiplier: float = 1 / 6 if count_unit_cpm else 10
         else:
             count_multiplier = 1
 
@@ -536,12 +536,12 @@ class RadiaCode:
             which_limits.append(VSFR.CR_UNITS)
             limit_values.append(int(count_unit_cpm))
 
-        num_to_set = len(which_limits)
+        num_to_set: int = len(which_limits)
         if not num_to_set:
             raise ValueError('No limits specified')
 
-        pack_items = [num_to_set] + [int(x) for x in which_limits] + limit_values
-        pack_format = f'<I{num_to_set}I{num_to_set}I'
-        resp = self.execute(COMMAND.WR_VIRT_SFR_BATCH, struct.pack(pack_format, *pack_items))
-        expected_valid = (1 << len(which_limits)) - 1
+        pack_items: list[int] = [num_to_set] + [int(x) for x in which_limits] + limit_values
+        pack_format: str = f'<I{num_to_set}I{num_to_set}I'
+        resp: BytesBuffer = self.execute(COMMAND.WR_VIRT_SFR_BATCH, struct.pack(pack_format, *pack_items))
+        expected_valid: int = (1 << len(which_limits)) - 1
         return expected_valid == resp.unpack('<I')[0]

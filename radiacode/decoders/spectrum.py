@@ -5,19 +5,20 @@ from radiacode.types import Spectrum
 
 
 def decode_counts_v0(br: BytesBuffer) -> list[int]:
-    ret = []
+    ret: list[int] = []
     while br.size() > 0:
         ret.append(br.unpack('<I')[0])
     return ret
 
 
 def decode_counts_v1(br: BytesBuffer) -> list[int]:
-    ret = []
+    ret: list[int] = []
     last = 0
     while br.size() > 0:
-        u16 = br.unpack('<H')[0]
-        cnt = (u16 >> 4) & 0x0FFF
-        vlen = u16 & 0x0F
+        u16: int = br.unpack('<H')[0]
+        cnt: int = (u16 >> 4) & 0x0FFF
+        vlen: int = u16 & 0x0F
+        v: int = 0
         for _ in range(cnt):
             if vlen == 0:
                 v = 0
@@ -44,7 +45,7 @@ def decode_RC_VS_SPECTRUM(br: BytesBuffer, format_version: int) -> Spectrum:
     ts, a0, a1, a2 = br.unpack('<Ifff')
 
     assert format_version in {0, 1}, f'unspported format_version={format_version}'
-    counts = decode_counts_v0(br) if format_version == 0 else decode_counts_v1(br)
+    counts: list[int] = decode_counts_v0(br) if format_version == 0 else decode_counts_v1(br)
 
     return Spectrum(
         duration=datetime.timedelta(seconds=ts),
