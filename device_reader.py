@@ -11,6 +11,22 @@ import time
 from pathlib import Path
 from datetime import datetime, timezone
 from collections import deque
+from enum import Enum
+import logging
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
+
+class ConnectionState(Enum):
+    DISCONNECTED = "disconnected"
+    CONNECTING = "connecting"
+    CONNECTED = "connected"
+    RECONNECTING = "reconnecting"
 
 class DeviceReader:
     def __init__(self, output_path="/tmp/radiacode_data.json", mock=False):
@@ -22,40 +38,87 @@ class DeviceReader:
         self.last_spectrum_time = 0
         self.spectrum_interval = 30  # Update spectrum every 30s
         
+        # Connection state tracking
+        self.connection_state = ConnectionState.DISCONNECTED
+        self.bluetooth_mac = None
+        self.device_serial = None
+        
+        # Reconnection parameters
+        self.reconnect_delay = 1.0  # Start with 1 second
+        self.max_reconnect_delay = 60.0  # Max 60 seconds
+        self.reconnect_backoff_factor = 2.0
+        
+    def _set_connection_state(self, state: ConnectionState):
+        """Update connection state and log changes"""
+        if self.connection_state != state:
+            logger.info(f"Connection state: {self.connection_state.value} → {state.value}")
+            self.connection_state = state
+    
     async def connect(self, bluetooth_mac=None):
-        """Connect to device with retry logic"""
-        retry_count = 0
-        while self.running and retry_count < 3:
-            try:
-                if self.mock:
-                    print("Using mock device")
-                    from radiacode_examples.mock_data_generator import MockRadiaCode
-                    self.device = MockRadiaCode()
-                    return True
-                
+        """Connect to device"""
+        self._set_connection_state(ConnectionState.CONNECTING)
+        self.bluetooth_mac = bluetooth_mac
+        
+        try:
+            if self.mock:
+                logger.info("Using mock device")
+                from radiacode_examples.mock_data_generator import MockRadiaCode
+                self.device = MockRadiaCode()
+                self.device_serial = "RC-MOCK-000001"
+            else:
                 from radiacode import RadiaCode
                 if bluetooth_mac:
-                    print(f"Connecting to Bluetooth {bluetooth_mac}...")
+                    logger.info(f"Connecting to Bluetooth {bluetooth_mac}...")
                     self.device = RadiaCode(bluetooth_mac=bluetooth_mac)
                 else:
-                    print("Connecting via USB...")
+                    logger.info("Connecting via USB...")
                     self.device = RadiaCode()
                 
-                serial = self.device.serial_number()
-                print(f"✓ Connected to {serial}")
-                return True
+                self.device_serial = self.device.serial_number()
+            
+            self._set_connection_state(ConnectionState.CONNECTED)
+            logger.info(f"✓ Connected to {self.device_serial}")
+            
+            # Reset reconnect delay on successful connection
+            self.reconnect_delay = 1.0
+            return True
+            
+        except Exception as e:
+            self._set_connection_state(ConnectionState.DISCONNECTED)
+            logger.error(f"Connection failed: {e}")
+            return False
+    
+    async def reconnect(self):
+        """Attempt to reconnect with exponential backoff"""
+        self._set_connection_state(ConnectionState.RECONNECTING)
+        
+        while self.running and self.connection_state != ConnectionState.CONNECTED:
+            logger.info(f"Reconnection attempt in {self.reconnect_delay:.1f} seconds...")
+            await asyncio.sleep(self.reconnect_delay)
+            
+            if not self.running:
+                break
                 
-            except Exception as e:
-                retry_count += 1
-                print(f"Connection attempt {retry_count} failed: {e}")
-                if retry_count < 3:
-                    await asyncio.sleep(5)
+            if await self.connect(self.bluetooth_mac):
+                return True
+            
+            # Exponential backoff
+            self.reconnect_delay = min(
+                self.reconnect_delay * self.reconnect_backoff_factor,
+                self.max_reconnect_delay
+            )
         
         return False
     
     async def read_loop(self):
-        """Main reading loop"""
+        """Main reading loop with automatic reconnection"""
         while self.running:
+            if self.connection_state != ConnectionState.CONNECTED:
+                # Try to reconnect
+                if not await self.reconnect():
+                    break
+                continue
+            
             try:
                 # Read real-time data
                 data_points = []
@@ -102,8 +165,9 @@ class DeviceReader:
                 output = {
                     'device': {
                         'connected': True,
-                        'serial': getattr(self.device, 'serial_number', lambda: 'mock')(),
-                        'last_update': datetime.now(timezone.utc).isoformat()
+                        'serial': self.device_serial,
+                        'last_update': datetime.now(timezone.utc).isoformat(),
+                        'connection_state': self.connection_state.value
                     },
                     'realtime': {
                         'latest': data_points[-1] if data_points else None,
@@ -118,25 +182,42 @@ class DeviceReader:
                     json.dump(output, f)
                 temp_path.replace(self.output_path)
                 
-                print(f"✓ Updated {len(data_points)} readings, "
-                      f"latest: {data_points[-1]['count_rate']:.1f} CPS" if data_points else "No new data")
+                if data_points:
+                    logger.debug(f"Updated {len(data_points)} readings, "
+                                f"latest: {data_points[-1]['count_rate']:.1f} CPS")
                 
                 await asyncio.sleep(1)
                 
             except Exception as e:
-                print(f"Read error: {e}")
+                # Check for specific Bluetooth disconnect error
+                error_msg = str(e)
+                if "BTLEDisconnectError" in str(type(e)) or "disconnected" in error_msg.lower():
+                    logger.error("Bluetooth connection lost")
+                else:
+                    logger.error(f"Read error: {e}")
+                
+                self._set_connection_state(ConnectionState.DISCONNECTED)
+                
+                # Close existing connection
+                try:
+                    if self.device and hasattr(self.device._connection, 'close'):
+                        self.device._connection.close()
+                except:
+                    pass
+                self.device = None
+                
                 # Write disconnected state
                 error_output = {
                     'device': {
                         'connected': False,
                         'error': str(e),
-                        'last_update': datetime.now(timezone.utc).isoformat()
+                        'last_update': datetime.now(timezone.utc).isoformat(),
+                        'connection_state': self.connection_state.value,
+                        'reconnect_delay': self.reconnect_delay
                     }
                 }
                 with open(self.output_path, 'w') as f:
                     json.dump(error_output, f)
-                
-                await asyncio.sleep(5)  # Wait before retry
     
     async def run(self, bluetooth_mac=None):
         """Main run method"""
@@ -145,22 +226,21 @@ class DeviceReader:
         for sig in (signal.SIGTERM, signal.SIGINT):
             loop.add_signal_handler(sig, self.shutdown)
         
-        # Connect
+        # Initial connection attempt
         if not await self.connect(bluetooth_mac):
-            print("Failed to connect to device")
-            return
+            logger.warning("Initial connection failed, will keep trying...")
         
-        # Run read loop
+        # Run read loop (handles reconnection)
         try:
             await self.read_loop()
         finally:
             if self.device and hasattr(self.device._connection, 'close'):
                 self.device._connection.close()
-            print("Device reader stopped")
+            logger.info("Device reader stopped")
     
     def shutdown(self):
         """Graceful shutdown"""
-        print("\nShutting down...")
+        logger.info("Shutting down...")
         self.running = False
 
 async def main():
