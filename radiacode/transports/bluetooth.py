@@ -6,8 +6,10 @@ import time
 class DeviceNotFound(Exception):
     pass
 
+
 class ConnectionClosed(Exception):
     pass
+
 
 _have_bluetooth = True
 try:
@@ -16,6 +18,7 @@ except ImportError:
     _have_bluetooth = False
 
 if platform.system() == 'Darwin' or _have_bluetooth is False:
+
     class Bluetooth:
         def __init__(self):
             # Create an empty class if we are on MacOS
@@ -89,8 +92,8 @@ else:
 
                 try:
                     self.p.waitForNotifications(poll_time)
-                except BTLEDisconnectError:
-                    raise ConnectionClosed('Bluetooth connection lost')
+                except BTLEDisconnectError as err:
+                    raise ConnectionClosed('Bluetooth connection lost') from err
 
             if self._closing:
                 raise ConnectionClosed('Connection closed while waiting for response')
@@ -109,6 +112,6 @@ else:
             if hasattr(self, 'p') and self.p is not None:
                 try:
                     self.p.disconnect()
-                except:
+                except:  # noqa: E722
                     pass  # Ignore errors during disconnect
                 self.p = None
