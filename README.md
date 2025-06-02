@@ -92,20 +92,19 @@ device.set_display_off_time(30)  # Auto-off after 30 seconds
 ## 🔧 Development Setup
 1. Install prerequisites:
    ```bash
-   # Install Poetry
-   curl -sSL https://install.python-poetry.org | python3 -
+   # Install uv
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
-2. Clone and setup:
+2. Clone
    ```bash
    git clone https://github.com/cdump/radiacode.git
    cd radiacode
-   poetry install
    ```
 
 3. Run examples:
    ```bash
-   poetry run python radiacode-examples/basic.py
+   uv run python radiacode-examples/basic.py
    ```
 
 ## ⚠️ Platform-Specific Notes

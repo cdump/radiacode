@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.11']
+        python-version: ['3.13']
     steps:
     - uses: actions/checkout@v3
 
@@ -16,17 +16,15 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install poetry
+    - name: Install uv
       run: |
-        curl -sSL https://install.python-poetry.org | python
-        echo "$HOME/.poetry/bin" >> $GITHUB_PATH
+        curl -LsSf https://astral.sh/uv/0.7.9/install.sh | sh
 
     - name: Ruff
       run: |
         sudo apt-get install -y libglib2.0-dev
-        poetry install --only=dev
-        poetry run ruff check radiacode radiacode-examples
-        poetry run ruff format --check radiacode radiacode-examples
+        uv run ruff check radiacode radiacode-examples
+        uv run ruff format --check radiacode radiacode-examples
 
     # TODO
     # - name: Run tests
