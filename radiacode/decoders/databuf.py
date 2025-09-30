@@ -65,7 +65,13 @@ def decode_VS_DATA_BUF(
                 )
             )
         elif eid == 0 and gid == 4:  # GRP_UserData:
-            count, count_rate, dose_rate, dose_rate_err, flags = br.unpack('<IffHH')
+            try:
+                count, count_rate, dose_rate, dose_rate_err, flags = br.unpack('<IffHH')
+            except ValueError as e:
+                if ignore_errors:
+                    print(f'BytesBuffer error while decoding {eid=}/{gid=} [{br.data().hex(" ")}]')
+                else:
+                    raise e
             # TODO
         elif eid == 0 and gid == 5:  # GRP_SheduleData
             count, count_rate, dose_rate, dose_rate_err, flags = br.unpack('<IffHH')
