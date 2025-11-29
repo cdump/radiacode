@@ -3,9 +3,9 @@ name = "radiacode"
 version = "0.3.5"
 description = "Library for RadiaCode-101"
 authors = [{ name = "Maxim Andreev", email = "andreevmaxim@gmail.com" }]
-requires-python = "~=3.9"
+requires-python = ">=3.9"
 readme = "README.md"
-license = "MIT"
+license = { file = "LICENSE" }
 classifiers = [
     "Development Status :: 3 - Alpha",
     "License :: OSI Approved :: MIT License",
@@ -26,6 +26,7 @@ examples = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/cdump/radiacode"
 Repository = "https://github.com/cdump/radiacode"
 
 [dependency-groups]
@@ -34,15 +35,9 @@ dev = [
     "mypy~=1.16",
 ]
 
-[tool.hatch.build.targets.sdist]
-include = ["radiacode-examples/*"]
-
-[tool.hatch.build.targets.wheel]
-include = ["radiacode-examples/*"]
-
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["uv_build>=0.9.13,<0.10.0"]
+build-backend = "uv_build"
 
 [tool.ruff]
 line-length = 130

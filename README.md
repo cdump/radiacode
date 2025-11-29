@@ -16,7 +16,7 @@ Python library for interfacing with the [RadiaCode-10x](https://www.radiacode.co
 
 ## 📸 Demo
 
-Interactive web interface example ([backend](radiacode-examples/webserver.py) | [frontend](radiacode-examples/webserver.html)):
+Interactive web interface example ([backend](src/radiacode/examples/webserver.py) | [frontend](src/radiacode/examples/webserver.html)):
 
 ![radiacode-webserver-example](./screenshot.png)
 
@@ -30,15 +30,15 @@ pip install --upgrade 'radiacode[examples]'
 Run the web interface shown in the screenshot above:
 ```bash
 # Via Bluetooth (Linux only, replace with your device's address)
-$ python3 -m radiacode-examples.webserver --bluetooth-mac 52:43:01:02:03:04
+$ python3 -m radiacode.examples.webserver --bluetooth-mac 52:43:01:02:03:04
 
 # Via USB connection (Linux/MacOS/Windows)
-$ sudo python3 -m radiacode-examples.webserver
+$ sudo python3 -m radiacode.examples.webserver
 ```
 
 Basic terminal output example (same options as web interface):
 ```bash
-$ python3 -m radiacode-examples.basic
+$ python3 -m radiacode.examples.basic
 ```
 
 ### Library Usage Example
@@ -104,7 +104,7 @@ device.set_display_off_time(30)  # Auto-off after 30 seconds
 
 3. Run examples:
    ```bash
-   uv run python radiacode-examples/basic.py
+   uv run python radiacode.examples/basic.py
    ```
 
 ## ⚠️ Platform-Specific Notes
