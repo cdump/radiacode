@@ -52,12 +52,38 @@ from radiacode import RadiaCode
 mpl.use('Qt5Agg')
 plt.style.use('dark_background')
 
-# some constants
-rho_CsJ = 4.51  # density of CsJ in g/cm^3
-m_sensor = rho_CsJ * 1e-3  # Volume is 1 cm^3, mass in kg
-keV2J = 1.602e-16  # conversion factor keV to Joule
-depositedE2doserate = keV2J * 3600 * 1e6 / m_sensor  # dose rate in µGy/h
-depositedE2dose = keV2J * 1e6 / m_sensor  # dose rate in µGy/h
+
+class Constants:
+    # some universal constants
+    rho_CsJ = 4.51  # density of CsJ in g/cm^3
+    rho_GAGG = 6.63  # density of gadolinium aluminum gallium garnet
+    keV2J = 1.602e-16  # conversion factor keV to Joule
+
+
+class device_constants:
+    """Conversion from counts to dose and dose rate"""
+
+    def __init__(self, device_type):
+        if device_type == '101' or device_type == '102':
+            # CsJ, 1 cm³
+            rho = Constants.rho_CsJ
+            Vol = 1e-3  # Volume is 1 cm^3
+        elif device_type == '110':
+            # csJ, 2.567cm³
+            rho = Constants.rho_CsJ
+            Vol = 2.567e-3  # Volume is 2.567 cm^3
+        elif device_type == '103G':
+            # GAGG, 1 cm³
+            rho = Constants.rho_GAAG
+            Vol = 1e-3  # Volume is 1 cm^3
+        else:
+            print('!!! unknown sensor ', device_id, " - assuming 1cm³ CsJ")
+            rho = Constants.rho_CsJ
+            Vol = 1e-3  # Volume is 1 cm^3
+
+        self.m_sensor = rho * Vol  # mass in kg
+        self.depositedE2doserate = Constants.keV2J * 3600 * 1e6 / self.m_sensor  # dose rate in µGy/h
+        self.depositedE2dose = Constants.keV2J * 1e6 / self.m_sensor  # dose rate in µGy/h
 
 
 class appColors:
@@ -150,6 +176,8 @@ def plot_RC102Spectrum():
     # ------
     rc = RadiaCode(bluetooth_mac=bluetooth_mac, serial_number=serial_number)
     serial = rc.serial_number()
+    device_type = serial.split('-')[1]
+    dev_const = device_constants(device_type)
     fw_version = rc.fw_version()
     status_flags = eval(rc.status().split(':')[1])[0]
     a0, a1, a2 = rc.energy_calib()
@@ -167,6 +195,7 @@ def plot_RC102Spectrum():
     t_start = _t0  # start time of acquisition from device
 
     print(f'### Found device with serial number: {serial}')
+    print(f'    Device {serial[:6]}')
     print(f'    Firmware: {fw_version}')
     print(f'    Status flags: 0x{status_flags:x}')
     print(f'    Calibration coefficientes: a0={a0:.6f}, a1={a1:.6f}, a2={a2:.6f}')
@@ -302,11 +331,11 @@ def plot_RC102Spectrum():
             rate_av = countsum / total_time
             hrates[icount % num_history_points] = rate
             depE = np.sum(counts_diff * Energies)  # in keV
-            doserate = depE * depositedE2doserate / dt_wait
+            doserate = depE * dev_const.depositedE2doserate / dt_wait
             # dose in µGy/h = µJ/(kg*h)
             deposited_energy = np.sum(counts * Energies)  # in keV
-            total_dose = deposited_energy * depositedE2dose
-            av_doserate = deposited_energy * depositedE2doserate / total_time
+            total_dose = deposited_energy * dev_const.depositedE2dose
+            av_doserate = deposited_energy * dev_const.depositedE2doserate / total_time
 
             countsum0 = countsum
             # update graphics
