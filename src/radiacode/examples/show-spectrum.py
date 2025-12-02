@@ -77,7 +77,7 @@ class device_constants:
             rho = Constants.rho_GAAG
             Vol = 1e-3  # Volume is 1 cm^3
         else:
-            print('!!! unknown sensor ', device_id, " - assuming 1cm³ CsJ")
+            print('!!! unknown sensor ', device_type, ' - assuming 1cm³ CsJ')
             rho = Constants.rho_CsJ
             Vol = 1e-3  # Volume is 1 cm^3
 
