@@ -198,7 +198,7 @@ def plot_RC102Spectrum():
     print(f'    Device {serial[:6]}')
     print(f'    Firmware: {fw_version}')
     print(f'    Status flags: 0x{status_flags:x}')
-    print(f'    Calibration coefficientes: a0={a0:.6f}, a1={a1:.6f}, a2={a2:.6f}')
+    print(f'    Calibration coefficients: a0={a0:.6f}, a1={a1:.6f}, a2={a2:.6f}')
     print(f'    Number of spectrum channels: {NChannels}')
     print(f'    Spectrum accumulation since {spectrum.duration}')
 
@@ -391,6 +391,7 @@ def plot_RC102Spectrum():
                 rates=rate_history[: icount + 1].tolist()
                 if icount < NHistory
                 else np.concatenate((rate_history[icount + 1 :], rate_history[: icount + 1])).tolist(),
+                device=device_type,
                 ecal=[a0, a1, a2],
                 spectrum=counts.tolist(),
             )
