@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 """script show-spectrum.py
 
-Reads spectrum data from Radiacode 102 device and displays and stores
-the count rate history and the spectrum of deposited energies.
-Data is stored in a file in human-readable yaml format.
+Reads spectrum data from Radiacode 10x and 110 devices and displays
+and stores the count rate history and the spectrum of deposited energies.
+Data is saved in a file in human-readable yaml format.
 
 Calculates and shows in an animated display:
 
@@ -18,13 +18,13 @@ Command line options:
   Usage: show-spectrum.py [-h] [-b BLUETOOTH_MAC] [-r] [-R] [-q]
           [-i INTERVAL] [-f FILE] [-t TIME] [-H HISTORY]
 
-  Read and display gamma energy spectrum from RadioCode 102,
-  show differential and updated cumulative spectrum,
-  optionally store data to file in yaml format.
+  Read and display gamma energy spectrum from RadioCode 10x or 110,
+  show differential and updated cumulative spectrum, optionally
+  save data to file in yaml format.
 
   Options:
     -h, --help          show this help message and exit
-    -b BLUETOOTH_MAC, --bluetooth-mac BLUETOOTH_MAC  bluetooth MAC address of device
+    -b BLUETOOTH_MAC, --bluetooth-mac BLUETOOTH_MAC  Bluetooth MAC address of device
     -s SERIAL_NUMBER, --serial-number SERIAL_NUMBER  serial number of device
     -r, --restart       restart spectrum accumulation
     -R, --Reset         reset spectrum stored in device
@@ -134,9 +134,9 @@ def plot_RC102Spectrum():
     # parse command line arguments
     # ------
     parser = argparse.ArgumentParser(
-        description='Read and display gamma energy spectrum from RadioCode 102, '
+        description='Read and display gamma energy spectrum from RadioCode 10x or 110, '
         + 'show differential and updated cumulative spectrum, '
-        + 'optionally store data to file in yaml format.'
+        + 'and optionally save data to file in yaml format.'
     )
     parser.add_argument('-b', '--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of device')
     parser.add_argument('-s', '--serial-number', type=str, required=False, help='serial number of device')
@@ -373,7 +373,7 @@ def plot_RC102Spectrum():
                     end='\r',
                 )
             itoggle = itoggle + 1 if itoggle < 3 else 0
-            # wait for corrected wait interval)
+            # wait for corrected wait interval
             fig.canvas.start_event_loop(max(0.9 * dt_wait, dt_wait * (icount + 2) - (time.time() - t_start)))
         # --> end while true
 
