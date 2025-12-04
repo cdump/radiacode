@@ -71,7 +71,7 @@ class device_constants:
         elif device_type == '110':
             # csJ, 2.567cm³
             rho = Constants.rho_CsJ
-            Vol = 2.567e-3  # Volume is 2.567 cm^3
+            Vol = 2.74e-3  # Volume is 2.74 cm^3
         elif device_type == '103G':
             # GAGG, 1 cm³
             rho = Constants.rho_GAAG
