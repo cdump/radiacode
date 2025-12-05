@@ -64,7 +64,7 @@ class device_constants:
     """Conversion from counts to dose and dose rate"""
 
     def __init__(self, device_type):
-        if device_type == '101' or device_type == '102':
+        if device_type == '101' or device_type == '102' or device_type == '103':
             # CsJ, 1 cm³
             rho = Constants.rho_CsJ
             Vol = 1e-3  # Volume is 1 cm^3
