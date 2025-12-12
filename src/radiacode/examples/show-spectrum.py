@@ -53,37 +53,35 @@ mpl.use('Qt5Agg')
 plt.style.use('dark_background')
 
 
-class Constants:
+class device_constants:
+    """Conversion from counts to dose and dose rate"""
+
     # some universal constants
     rho_CsJ = 4.51  # density of CsJ in g/cm^3
     rho_GAGG = 6.63  # density of gadolinium aluminum gallium garnet
     keV2J = 1.602e-16  # conversion factor keV to Joule
 
-
-class device_constants:
-    """Conversion from counts to dose and dose rate"""
-
     def __init__(self, device_type):
         if device_type == '101' or device_type == '102' or device_type == '103':
             # CsJ, 1 cm³
-            rho = Constants.rho_CsJ
+            rho = device_constants.rho_CsJ
             Vol = 1e-3  # Volume is 1 cm^3
         elif device_type == '110':
             # csJ, 2.567cm³
-            rho = Constants.rho_CsJ
+            rho = device_constants.rho_CsJ
             Vol = 2.74e-3  # Volume is 2.74 cm^3
         elif device_type == '103G':
             # GAGG, 1 cm³
-            rho = Constants.rho_GAAG
+            rho = device_constants.rho_GAAG
             Vol = 1e-3  # Volume is 1 cm^3
         else:
             print('!!! unknown sensor ', device_type, ' - assuming 1cm³ CsJ')
-            rho = Constants.rho_CsJ
+            rho = device_constants.rho_CsJ
             Vol = 1e-3  # Volume is 1 cm^3
 
         self.m_sensor = rho * Vol  # mass in kg
-        self.depositedE2doserate = Constants.keV2J * 3600 * 1e6 / self.m_sensor  # dose rate in µGy/h
-        self.depositedE2dose = Constants.keV2J * 1e6 / self.m_sensor  # dose rate in µGy/h
+        self.depositedE2doserate = device_constants.keV2J * 3600 * 1e6 / self.m_sensor  # dose rate in µGy/h
+        self.depositedE2dose = device_constants.keV2J * 1e6 / self.m_sensor  # dose rate in µGy/h
 
 
 class appColors:
