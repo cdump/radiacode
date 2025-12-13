@@ -1,9 +1,9 @@
 #! /usr/bin/env python3
 """script show-spectrum.py
 
-Reads spectrum data from Radiacode 102 device and displays and stores
-the count rate history and the spectrum of deposited energies.
-Data is stored in a file in human-readable yaml format.
+Reads spectrum data from Radiacode 10x and 110 devices and displays
+and stores the count rate history and the spectrum of deposited energies.
+Data is saved in a file in human-readable yaml format.
 
 Calculates and shows in an animated display:
 
@@ -18,13 +18,13 @@ Command line options:
   Usage: show-spectrum.py [-h] [-b BLUETOOTH_MAC] [-r] [-R] [-q]
           [-i INTERVAL] [-f FILE] [-t TIME] [-H HISTORY]
 
-  Read and display gamma energy spectrum from RadioCode 102,
-  show differential and updated cumulative spectrum,
-  optionally store data to file in yaml format.
+  Read and display gamma energy spectrum from RadioCode 10x or 110,
+  show differential and updated cumulative spectrum, optionally
+  save data to file in yaml format.
 
   Options:
     -h, --help          show this help message and exit
-    -b BLUETOOTH_MAC, --bluetooth-mac BLUETOOTH_MAC  bluetooth MAC address of device
+    -b BLUETOOTH_MAC, --bluetooth-mac BLUETOOTH_MAC  Bluetooth MAC address of device
     -s SERIAL_NUMBER, --serial-number SERIAL_NUMBER  serial number of device
     -r, --restart       restart spectrum accumulation
     -R, --Reset         reset spectrum stored in device
@@ -52,12 +52,36 @@ from radiacode import RadiaCode
 mpl.use('Qt5Agg')
 plt.style.use('dark_background')
 
-# some constants
-rho_CsJ = 4.51  # density of CsJ in g/cm^3
-m_sensor = rho_CsJ * 1e-3  # Volume is 1 cm^3, mass in kg
-keV2J = 1.602e-16  # conversion factor keV to Joule
-depositedE2doserate = keV2J * 3600 * 1e6 / m_sensor  # dose rate in µGy/h
-depositedE2dose = keV2J * 1e6 / m_sensor  # dose rate in µGy/h
+
+class device_constants:
+    """Conversion from counts to dose and dose rate"""
+
+    # some universal constants
+    rho_CsJ = 4.51  # density of CsJ in g/cm^3
+    rho_GAGG = 6.63  # density of gadolinium aluminum gallium garnet
+    keV2J = 1.602e-16  # conversion factor keV to Joule
+
+    def __init__(self, device_type):
+        if device_type == '101' or device_type == '102' or device_type == '103':
+            # CsJ, 1 cm³
+            rho = device_constants.rho_CsJ
+            Vol = 1e-3  # Volume is 1 cm^3
+        elif device_type == '110':
+            # csJ, 2.567cm³
+            rho = device_constants.rho_CsJ
+            Vol = 2.74e-3  # Volume is 2.74 cm^3
+        elif device_type == '103G':
+            # GAGG, 1 cm³
+            rho = device_constants.rho_GAAG
+            Vol = 1e-3  # Volume is 1 cm^3
+        else:
+            print('!!! unknown sensor ', device_type, ' - assuming 1cm³ CsJ')
+            rho = device_constants.rho_CsJ
+            Vol = 1e-3  # Volume is 1 cm^3
+
+        self.m_sensor = rho * Vol  # mass in kg
+        self.depositedE2doserate = device_constants.keV2J * 3600 * 1e6 / self.m_sensor  # dose rate in µGy/h
+        self.depositedE2dose = device_constants.keV2J * 1e6 / self.m_sensor  # dose rate in µGy/h
 
 
 class appColors:
@@ -108,9 +132,9 @@ def plot_RC102Spectrum():
     # parse command line arguments
     # ------
     parser = argparse.ArgumentParser(
-        description='Read and display gamma energy spectrum from RadioCode 102, '
+        description='Read and display gamma energy spectrum from RadioCode 10x or 110, '
         + 'show differential and updated cumulative spectrum, '
-        + 'optionally store data to file in yaml format.'
+        + 'and optionally save data to file in yaml format.'
     )
     parser.add_argument('-b', '--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of device')
     parser.add_argument('-s', '--serial-number', type=str, required=False, help='serial number of device')
@@ -150,6 +174,8 @@ def plot_RC102Spectrum():
     # ------
     rc = RadiaCode(bluetooth_mac=bluetooth_mac, serial_number=serial_number)
     serial = rc.serial_number()
+    device_type = serial.split('-')[1]
+    dev_const = device_constants(device_type)
     fw_version = rc.fw_version()
     status_flags = eval(rc.status().split(':')[1])[0]
     a0, a1, a2 = rc.energy_calib()
@@ -167,9 +193,10 @@ def plot_RC102Spectrum():
     t_start = _t0  # start time of acquisition from device
 
     print(f'### Found device with serial number: {serial}')
+    print(f'    Device {serial[:6]}')
     print(f'    Firmware: {fw_version}')
     print(f'    Status flags: 0x{status_flags:x}')
-    print(f'    Calibration coefficientes: a0={a0:.6f}, a1={a1:.6f}, a2={a2:.6f}')
+    print(f'    Calibration coefficients: a0={a0:.6f}, a1={a1:.6f}, a2={a2:.6f}')
     print(f'    Number of spectrum channels: {NChannels}')
     print(f'    Spectrum accumulation since {spectrum.duration}')
 
@@ -302,11 +329,11 @@ def plot_RC102Spectrum():
             rate_av = countsum / total_time
             hrates[icount % num_history_points] = rate
             depE = np.sum(counts_diff * Energies)  # in keV
-            doserate = depE * depositedE2doserate / dt_wait
+            doserate = depE * dev_const.depositedE2doserate / dt_wait
             # dose in µGy/h = µJ/(kg*h)
             deposited_energy = np.sum(counts * Energies)  # in keV
-            total_dose = deposited_energy * depositedE2dose
-            av_doserate = deposited_energy * depositedE2doserate / total_time
+            total_dose = deposited_energy * dev_const.depositedE2dose
+            av_doserate = deposited_energy * dev_const.depositedE2doserate / total_time
 
             countsum0 = countsum
             # update graphics
@@ -344,7 +371,7 @@ def plot_RC102Spectrum():
                     end='\r',
                 )
             itoggle = itoggle + 1 if itoggle < 3 else 0
-            # wait for corrected wait interval)
+            # wait for corrected wait interval
             fig.canvas.start_event_loop(max(0.9 * dt_wait, dt_wait * (icount + 2) - (time.time() - t_start)))
         # --> end while true
 
@@ -362,6 +389,7 @@ def plot_RC102Spectrum():
                 rates=rate_history[: icount + 1].tolist()
                 if icount < NHistory
                 else np.concatenate((rate_history[icount + 1 :], rate_history[: icount + 1])).tolist(),
+                device=device_type,
                 ecal=[a0, a1, a2],
                 spectrum=counts.tolist(),
             )
