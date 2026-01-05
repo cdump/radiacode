@@ -1,0 +1,96 @@
+name: build
+
+on:
+  push:
+    branches: [master]
+    tags: ['*.*.*']
+  pull_request:
+    branches: [master]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Ruff
+        run: |
+          uv run ruff check
+          uv run ruff format --check
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.9', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync
+
+      # TODO: Enable when tests are added
+      # - name: Run tests
+      #   run: uv run pytest -ra -v
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglib2.0-dev
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Build wheel
+        run: uv build
+
+      - name: Release Notes
+        run: |
+          echo '## Changes since previous release:' > changelog.md
+          git log --oneline $(git describe --tags --abbrev=0 HEAD^)..HEAD --pretty=format:"- [%h](https://github.com/cdump/radiacode/commit/%H) %s" >> changelog.md
+
+      - name: Github Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          body_path: changelog.md
+          files: dist/*
+
+      - name: Publish to PyPI
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
+        run: uv publish
