@@ -372,7 +372,7 @@ class RadiaCode:
         Args:
             on: True to enable vibration, False to disable
         """
-        self.write_request(VSFR.SOUND_ON, struct.pack('<I', bool(on)))
+        self.write_request(VSFR.VIBRO_ON, struct.pack('<I', bool(on)))
 
     def set_sound_ctrl(self, ctrls: list[CTRL]) -> None:
         """Configure which events trigger device sounds.
