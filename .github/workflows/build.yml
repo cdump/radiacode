@@ -63,11 +63,16 @@ jobs:
       - name: Build package
         run: uv build
 
-      - name: Install wheel
-        run: python -m pip install ${{ matrix.platform.os == 'windows' && '(get-item .\dist\*.whl)' || 'dist/*.whl' }}
+      - name: Test install wheel
+        run: |
+          python -m pip install ${{ matrix.platform.os == 'windows' && '(get-item .\dist\*.whl)' || 'dist/*.whl' }}
+          python -c 'import radiacode'
 
-      - name: Test install
-        run: python -c 'import radiacode'
+      - name: Test install wheel with examples
+        shell: bash
+        run: |
+          whl=$(ls dist/*.whl)
+          python -m pip install "$whl[examples]"
 
       # TODO: Enable when tests are added
       # - name: Run tests
