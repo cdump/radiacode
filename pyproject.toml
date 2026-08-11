@@ -27,12 +27,18 @@ examples = [
 
 [project.urls]
 Homepage = "https://github.com/cdump/radiacode"
+Documentation = "https://cdump.github.io/radiacode/"
 Repository = "https://github.com/cdump/radiacode"
 
 [dependency-groups]
 dev = [
     "ruff>=0.15.22,<0.16",
     "mypy>=1.19.1,<2",
+]
+docs = [
+    "mkdocs>=1.6.1,<2",
+    "mkdocs-material>=9.6.0,<10",
+    "mkdocstrings[python]>=0.30.0,<1",
 ]
 
 [build-system]

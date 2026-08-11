@@ -1,6 +1,21 @@
+"""Data records and enums used by the RadiaCode API."""
+
 import datetime
 from dataclasses import dataclass
 from enum import Enum
+
+__all__ = [
+    'AlarmLimits',
+    'CTRL',
+    'DisplayDirection',
+    'DoseRateDB',
+    'Event',
+    'EventId',
+    'RareData',
+    'RawData',
+    'RealTimeData',
+    'Spectrum',
+]
 
 
 @dataclass
@@ -11,7 +26,7 @@ class RealTimeData:
         dt (datetime.datetime): Timestamp of the measurement
         count_rate (float): Number of counts per second
         count_rate_err (float): Count rate error percentage
-        dose_rate (int): Radiation dose rate measurement
+        dose_rate (float): Radiation dose rate in device protocol units
         dose_rate_err (float): Dose rate measurement error percentage
         flags (int): Status flags for the measurement
         real_time_flags (int): Real-time status flags
@@ -20,7 +35,7 @@ class RealTimeData:
     dt: datetime.datetime
     count_rate: float
     count_rate_err: float
-    dose_rate: int
+    dose_rate: float
     dose_rate_err: float
     flags: int
     real_time_flags: int
@@ -33,7 +48,7 @@ class RawData:
     Attributes:
         dt (datetime.datetime): Timestamp of the measurement
         count_rate (float): Number of counts per second
-        dose_rate (float): Radiation dose rate measurement
+        dose_rate (float): Radiation dose rate in device protocol units
     """
 
     dt: datetime.datetime
@@ -49,7 +64,7 @@ class DoseRateDB:
         dt (datetime.datetime): Timestamp of the measurement
         count (int): Total number of counts in the measurement period
         count_rate (float): Number of counts per second
-        dose_rate (float): Radiation dose rate measurement
+        dose_rate (float): Radiation dose rate in device protocol units
         dose_rate_err (float): Dose rate measurement error percentage
         flags (int): Status flags for the measurement
     """
@@ -69,9 +84,9 @@ class RareData:
     Attributes:
         dt (datetime.datetime): Timestamp of the status reading
         duration (int): Duration of dose accumulation in seconds
-        dose (float): Accumulated radiation dose
-        temperature (float): Device temperature reading
-        charge_level (float): Battery charge level
+        dose (float): Accumulated dose in device protocol units
+        temperature (float): Device temperature in degrees Celsius
+        charge_level (float): Battery charge level as a percentage
         flags (int): Status flags
     """
 
@@ -84,6 +99,8 @@ class RareData:
 
 
 class EventId(Enum):
+    """Event identifiers emitted in buffered device data."""
+
     POWER_OFF = 0
     POWER_ON = 1
     LOW_BATTERY_SHUTOWN = 2
@@ -150,18 +167,24 @@ class Spectrum:
 
 @dataclass
 class AlarmLimits:
-    """Alarm limits
+    """Count-rate, dose-rate, and accumulated-dose alarm limits.
 
     The count rate may be per second or per minute depending on device
     configuration. The `count_unit` attribute indicates which.
 
-    Dose rate is in micro-units (Sv or R) per hour.
+    Dose rate is in micro-units (Sv or R) per hour, and accumulated dose is in
+    micro-units (Sv or R). `dose_unit` identifies the configured unit. The
+    device appears to use a fixed 100 Sv/R conversion internally.
 
-    Accumulated dos is in micro-units (Sv or R).
-
-    The dose unit may be Roentgen or Sievert depending on device
-    configuration. The `dose_unit` attribute indicates which. There seems
-    to be a fixed 100Sv/R conversion within the device
+    Attributes:
+        l1_count_rate: Count-rate threshold for the level-one alarm.
+        l2_count_rate: Count-rate threshold for the level-two alarm.
+        count_unit: Count-rate unit, either `"cps"` or `"cpm"`.
+        l1_dose_rate: Dose-rate threshold for the level-one alarm.
+        l2_dose_rate: Dose-rate threshold for the level-two alarm.
+        l1_dose: Accumulated-dose threshold for the level-one alarm.
+        l2_dose: Accumulated-dose threshold for the level-two alarm.
+        dose_unit: Dose unit, either `"Sv"` or `"R"`.
     """
 
     l1_count_rate: float
@@ -175,6 +198,8 @@ class AlarmLimits:
 
 
 class DisplayDirection(Enum):
+    """Display orientation modes accepted by the device."""
+
     AUTO = 0
     RIGHT = 1
     LEFT = 2
@@ -188,6 +213,8 @@ class DisplayDirection(Enum):
 # we get a list of all the SFRs with their address (opcode), their size in bytes,
 # their type (int or float), and whether they're signed or not.
 class VSFR(Enum):
+    """Low-level virtual special-function register identifiers."""
+
     DEVICE_CTRL = 0x0500
     DEVICE_LANG = 0x0502
     DEVICE_ON = 0x0503
@@ -356,6 +383,8 @@ _VSFR_FORMATS: dict = {
 
 
 class VS(Enum):
+    """Low-level virtual-string identifiers used by the device protocol."""
+
     CONFIGURATION = 2
     FW_DESCRIPTOR = 3
     SERIAL_NUMBER = 8
@@ -376,6 +405,8 @@ class VS(Enum):
 
 
 class CTRL(Enum):
+    """Device events that can trigger sound or vibration feedback."""
+
     BUTTONS = 1 << 0
     CLICKS = 1 << 1
     DOSE_RATE_ALARM_1 = 1 << 2
@@ -390,6 +421,8 @@ class CTRL(Enum):
 
 
 class COMMAND(Enum):
+    """Low-level command identifiers used by the device protocol."""
+
     GET_STATUS = 0x0005
     SET_EXCHANGE = 0x0007
     GET_VERSION = 0x000A
