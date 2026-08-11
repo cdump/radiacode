@@ -19,6 +19,8 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          cache-suffix: lint
 
       - name: Ruff
         run: |
@@ -34,6 +36,8 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          cache-suffix: docs
 
       - name: Install documentation dependencies
         run: uv sync --group docs --locked
