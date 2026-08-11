@@ -1,10 +1,15 @@
 import struct
 import usb.core
+import usb.util  # type: ignore[import-untyped]
 
 from radiacode.bytes_buffer import BytesBuffer
 
 
 class DeviceNotFound(Exception):
+    pass
+
+
+class ConnectionClosed(Exception):
     pass
 
 
@@ -37,12 +42,16 @@ class Usb:
                 break
 
     def execute(self, request: bytes) -> BytesBuffer:
-        self._device.write(0x1, request)
+        device = self._device
+        if device is None:
+            raise ConnectionClosed('USB connection is closed')
+
+        device.write(0x1, request)
 
         trials = 0
         max_trials = 3
         while trials < max_trials:  # repeat until non-zero lenght data received
-            data = self._device.read(0x81, 256, timeout=self._timeout_ms).tobytes()
+            data = device.read(0x81, 256, timeout=self._timeout_ms).tobytes()
             if len(data) != 0:
                 break
             else:
@@ -54,7 +63,16 @@ class Usb:
         data = data[4:]
 
         while len(data) < response_length:
-            r = self._device.read(0x81, response_length - len(data)).tobytes()
+            r = device.read(0x81, response_length - len(data)).tobytes()
             data += r
 
         return BytesBuffer(data)
+
+    def close(self) -> None:
+        """Release the USB interface and device handle."""
+        device = self._device
+        if device is None:
+            return
+
+        self._device = None
+        usb.util.dispose_resources(device)

@@ -86,7 +86,7 @@ class RadiaCode:
             self._connection = Bluetooth(bluetooth_mac)
         else:
             self._connection = Usb(serial_number=serial_number)
-        self._finalizer = weakref.finalize(self, self._connection.close) if isinstance(self._connection, Bluetooth) else None
+        self._finalizer = weakref.finalize(self, self._connection.close)
 
         try:
             # init
@@ -112,8 +112,7 @@ class RadiaCode:
 
     def close(self) -> None:
         """Close the device connection and release its resources."""
-        if self._finalizer is not None:
-            self._finalizer()
+        self._finalizer()
 
     def base_time(self) -> datetime.datetime:
         return self._base_time
