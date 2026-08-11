@@ -47,7 +47,9 @@ async def send_data(d):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--bluetooth-mac', type=str, required=True, help='MAC address of radiascan device')
+    parser.add_argument(
+        '--bluetooth-mac', type=str, required=True, help='Bluetooth device identifier (MAC address or macOS UUID)'
+    )
     parser.add_argument('--connection', choices=['usb', 'bluetooth'], default='bluetooth', help='device connection type')
     parser.add_argument('--interval', type=int, required=False, default=600, help='send interval, seconds')
     args = parser.parse_args()

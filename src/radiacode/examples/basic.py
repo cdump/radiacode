@@ -1,6 +1,5 @@
 import argparse
 import time
-import platform
 
 from radiacode import RadiaCode
 from radiacode.transports.usb import DeviceNotFound as DeviceNotFoundUSB
@@ -10,14 +9,12 @@ from radiacode.transports.bluetooth import DeviceNotFound as DeviceNotFoundBT
 def main():
     parser = argparse.ArgumentParser()
 
-    # Bluetooth is only supported on Linux via bluepy
-    if platform.system() == 'Linux':
-        parser.add_argument(
-            '--bluetooth-mac',
-            type=str,
-            required=False,
-            help='(Linux only) Bluetooth MAC address of radiascan device (e.g. 00:11:22:33:44:55)',
-        )
+    parser.add_argument(
+        '--bluetooth-mac',
+        type=str,
+        required=False,
+        help='Bluetooth device identifier (MAC address or macOS UUID)',
+    )
 
     parser.add_argument(
         '--serial',
@@ -28,8 +25,8 @@ def main():
 
     args = parser.parse_args()
 
-    if hasattr(args, 'bluetooth_mac') and args.bluetooth_mac:
-        print(f'Connecting to Radiacode via Bluetooth (MAC address: {args.bluetooth_mac})')
+    if args.bluetooth_mac:
+        print(f'Connecting to Radiacode via Bluetooth (identifier: {args.bluetooth_mac})')
 
         try:
             rc = RadiaCode(bluetooth_mac=args.bluetooth_mac)
@@ -68,4 +65,7 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print()

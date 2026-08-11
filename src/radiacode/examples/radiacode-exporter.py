@@ -8,7 +8,9 @@ from radiacode import RealTimeData, RadiaCode
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of radiascan device')
+    parser.add_argument(
+        '--bluetooth-mac', type=str, required=False, help='Bluetooth device identifier (MAC address or macOS UUID)'
+    )
     parser.add_argument('--update-interval', type=int, default=3, required=False, help='update interval (seconds)')
     parser.add_argument('--port', type=int, default=5432, required=False, help='prometheus http port')
     args = parser.parse_args()
