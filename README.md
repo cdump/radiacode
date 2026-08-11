@@ -48,23 +48,22 @@ pip install --upgrade radiacode
 ```python
 from radiacode import RadiaCode, RealTimeData
 
-# Connect to device (USB by default)
-device = RadiaCode()
+# Connect to the device over USB and release it when finished
+with RadiaCode() as device:
+    # Get current radiation measurements
+    data = device.data_buf()
+    for record in data:
+        if isinstance(record, RealTimeData):
+            print(f"Dose rate: {record.dose_rate}")
 
-# Get current radiation measurements
-data = device.data_buf()
-for record in data:
-    if isinstance(record, RealTimeData):
-        print(f"Dose rate: {record.dose_rate}")
+    # Get spectrum data
+    spectrum = device.spectrum()
+    print(f"Live time: {spectrum.duration}s")
+    print(f"Total counts: {sum(spectrum.counts)}")
 
-# Get spectrum data
-spectrum = device.spectrum()
-print(f"Live time: {spectrum.duration}s")
-print(f"Total counts: {sum(spectrum.counts)}")
-
-# Configure device
-device.set_display_brightness(5)  # 0-9 brightness level
-device.set_language('en')        # 'en' or 'ru'
+    # Configure device
+    device.set_display_brightness(5)  # 0-9 brightness level
+    device.set_language('en')        # 'en' or 'ru'
 ```
 
 #### More Features

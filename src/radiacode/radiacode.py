@@ -10,6 +10,7 @@ from __future__ import annotations
 import datetime
 import struct
 import weakref
+from types import TracebackType
 from typing import Optional
 
 from radiacode.bytes_buffer import BytesBuffer
@@ -113,6 +114,19 @@ class RadiaCode:
     def close(self) -> None:
         """Close the device connection and release its resources."""
         self._finalizer()
+
+    def __enter__(self) -> RadiaCode:
+        """Return the connected device for use in a context manager."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
+        """Close the device when leaving a context manager."""
+        self.close()
 
     def base_time(self) -> datetime.datetime:
         return self._base_time
