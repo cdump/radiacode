@@ -2,6 +2,7 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/radiacode)](https://pypi.org/project/radiacode)
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue.svg)](https://cdump.github.io/radiacode/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Python library for interfacing with the [RadiaCode-10x](https://www.radiacode.com/) radiation detectors and spectrometers. Control your device, collect measurements, and analyze radiation data with ease.
@@ -58,7 +59,7 @@ with RadiaCode() as device:
 
     # Get spectrum data
     spectrum = device.spectrum()
-    print(f"Live time: {spectrum.duration}s")
+    print(f"Live time: {spectrum.duration.total_seconds()}s")
     print(f"Total counts: {sum(spectrum.counts)}")
 
     # Configure device
@@ -88,6 +89,19 @@ device.set_vibro_on(True)
 device.set_display_off_time(30)  # Auto-off after 30 seconds
 ```
 
+## 📚 Documentation
+
+The [documentation site](https://cdump.github.io/radiacode/) contains setup
+guides, measurement and unit notes, spectrum examples, device configuration,
+and an API reference generated from the source docstrings and type annotations.
+
+Build it locally with:
+
+```bash
+uv sync --group docs
+uv run --no-sync mkdocs serve
+```
+
 ## 🔧 Development Setup
 1. Install prerequisites:
    ```bash
@@ -103,13 +117,13 @@ device.set_display_off_time(30)  # Auto-off after 30 seconds
 
 3. Run examples:
    ```bash
-   uv run python radiacode.examples/basic.py
+   uv run python -m radiacode.examples.basic
    ```
 
 ## ⚠️ Platform-Specific Notes
 
 ### macOS
-- ✅ USB connectivity works out of the box
+- ✅ USB connectivity supported via libusb
 - ✅ Bluetooth connectivity supported via Bleak (use the device's CoreBluetooth UUID)
 - 📝 Required: `brew install libusb`
 

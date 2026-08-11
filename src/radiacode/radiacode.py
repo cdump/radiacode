@@ -51,6 +51,17 @@ def spectrum_channel_to_energy(channel_number: int, a0: float, a1: float, a2: fl
 
 
 class RadiaCode:
+    """A synchronous connection to a RadiaCode device.
+
+    Constructing this class opens either a USB or Bluetooth connection and
+    initializes the device. Use it as a context manager whenever possible so
+    that transport resources are released promptly.
+
+    Only one transport is selected: supplying `bluetooth_mac` selects
+    Bluetooth; otherwise USB is used. `serial_number` only selects between USB
+    devices.
+    """
+
     _connection: Bluetooth | Usb
 
     def __init__(
@@ -129,9 +140,19 @@ class RadiaCode:
         self.close()
 
     def base_time(self) -> datetime.datetime:
+        """Return the host-derived base time used for buffered timestamps."""
         return self._base_time
 
     def execute(self, reqtype: COMMAND, args: Optional[bytes] = None) -> BytesBuffer:
+        """Execute a low-level protocol command.
+
+        Args:
+            reqtype: Protocol command identifier.
+            args: Optional command payload.
+
+        Returns:
+            A buffer positioned at the start of the response payload.
+        """
         try:
             req_seq_no = 0x80 + self._seq
             self._seq = (self._seq + 1) % 32
@@ -149,6 +170,14 @@ class RadiaCode:
             raise
 
     def read_request(self, command_id: int | VS | VSFR) -> BytesBuffer:
+        """Read a low-level virtual string or register.
+
+        Args:
+            command_id: Numeric, virtual-string, or virtual-register identifier.
+
+        Returns:
+            A buffer containing the returned value.
+        """
         r = self.execute(COMMAND.RD_VIRT_STRING, struct.pack('<I', int(command_id)))
         retcode, flen = r.unpack('<II')
         assert retcode == 1, f'{command_id}: got retcode {retcode}'
@@ -160,19 +189,29 @@ class RadiaCode:
         return r
 
     def write_request(self, command_id: int | VSFR, data: Optional[bytes] = None) -> None:
+        """Write a low-level virtual register.
+
+        Args:
+            command_id: Numeric or virtual-register identifier.
+            data: Optional encoded register value.
+        """
         r = self.execute(COMMAND.WR_VIRT_SFR, struct.pack('<I', int(command_id)) + (data or b''))
         retcode = r.unpack('<I')[0]
         assert retcode == 1
         assert r.size() == 0
 
-    def batch_read_vsfrs(self, vsfr_ids: list[VSFR]) -> tuple[int | float]:
-        """Read multiple VSFRs
+    def _batch_read_vsfrs(self, vsfr_ids: list[VSFR]) -> list[int | float]:
+        """Read multiple virtual special-function registers.
 
         Args:
-            vsfr_ids: a list of VSFRs to fetch
+            vsfr_ids: Registers to fetch.
 
-        Returns a tuple of decoded items in appropriate formats, such as
-        floating point for calibration, integers for counts,
+        Returns:
+            Decoded values in the same order as `vsfr_ids`.
+
+        Raises:
+            ValueError: If no registers are requested or the device cannot
+                return every requested register.
         """
         nvsfr = len(vsfr_ids)
         if nvsfr == 0:
@@ -214,6 +253,7 @@ class RadiaCode:
         return ret
 
     def status(self) -> str:
+        """Return the device status flags as a diagnostic string."""
         r = self.execute(COMMAND.GET_STATUS)
         flags = r.unpack('<I')
         assert r.size() == 0
@@ -231,6 +271,7 @@ class RadiaCode:
         self.execute(COMMAND.SET_TIME, d)
 
     def fw_signature(self) -> str:
+        """Return a formatted firmware signature and identity string."""
         r = self.execute(COMMAND.FW_SIGNATURE)
         signature = r.unpack('<I')[0]
         filename = r.unpack_string()
@@ -268,10 +309,12 @@ class RadiaCode:
         return '-'.join(f'{v:08X}' for v in serial_groups)
 
     def configuration(self) -> str:
+        """Return the device configuration file decoded as CP1251 text."""
         r = self.read_request(VS.CONFIGURATION)
         return r.data().decode('cp1251')
 
     def text_message(self) -> str:
+        """Return the current device text message."""
         r = self.read_request(VS.TEXT_MESSAGE)
         return r.data().decode('ascii')
 
@@ -285,6 +328,7 @@ class RadiaCode:
         return r.data().decode('ascii')
 
     def commands(self) -> str:
+        """Return the device's special-function-register description."""
         br = self.read_request(VS.SFR_FILE)
         return br.data().decode('ascii')
 
@@ -365,7 +409,7 @@ class RadiaCode:
         retcode = r.unpack('<I')[0]
         assert retcode == 1
 
-    def set_language(self, lang='ru') -> None:
+    def set_language(self, lang: str = 'ru') -> None:
         """Set the device interface language.
 
         Args:
@@ -453,7 +497,7 @@ class RadiaCode:
         self.write_request(VSFR.VIBRO_CTRL, struct.pack('<I', flags))
 
     def get_alarm_limits(self) -> AlarmLimits:
-        "Retrieve the alarm limits"
+        """Return the device's current alarm thresholds and configured units."""
         regs = [
             VSFR.CR_LEV1_cp10s,
             VSFR.CR_LEV2_cp10s,
@@ -465,7 +509,7 @@ class RadiaCode:
             VSFR.CR_UNITS,
         ]
 
-        resp = self.batch_read_vsfrs(regs)
+        resp = self._batch_read_vsfrs(regs)
 
         dose_multiplier = 100 if resp[6] else 1
         count_multiplier = 60 if resp[7] else 1
@@ -491,20 +535,36 @@ class RadiaCode:
         dose_unit_sv: bool | None = None,
         count_unit_cpm: bool | None = None,
     ) -> bool:
-        """Set alarm limits - returns True if the specified limits were set
+        """Set one or more alarm limits.
 
         Args:
-            l1_count_rate: count rate at which to raise a level 1 alarm
-            l2_count_rate: count rate at which to raise a level 2 alarm
-            l1_dose_rate: dose rate (micro-unit/hr) at which to raise a level 1 alarm
-            l2_dose_rate: dose rate (micro-unit/hr) at which to raise a level 2 alarm
-            l1_dose: accumulated dose (micro-unit) at which to raise a level 1 alarm
-            l2_dose: accumulated dose (micro-unit) at which to raise a level 2 alarm
-            dose_unit_sv = specify the dose in Sievert rather than Roentgen
-            count_unit_cpm = set device count rate reporting to cpm rather than cps
+            l1_count_rate: Count rate at which to raise a level-one alarm.
+            l2_count_rate: Count rate at which to raise a level-two alarm.
+            l1_dose_rate: Dose rate in micro-units per hour at which to raise a
+                level-one alarm.
+            l2_dose_rate: Dose rate in micro-units per hour at which to raise a
+                level-two alarm.
+            l1_dose: Accumulated dose in micro-units at which to raise a
+                level-one alarm.
+            l2_dose: Accumulated dose in micro-units at which to raise a
+                level-two alarm.
+            dose_unit_sv: If true, interpret dose values as Sievert and set the
+                display unit to Sievert. If false, use Roentgen. If omitted, do
+                not update the display unit or scale values.
+            count_unit_cpm: If true, interpret count-rate values as counts per
+                minute and set that display unit. If false, use counts per
+                second. If omitted, do not update the display unit or scale
+                values.
+
+        Returns:
+            True if the device reports that every supplied value was written.
+
+        Raises:
+            ValueError: If no limits are supplied or a supplied limit is
+                negative.
 
         Internally, the device stores count rate in counts/10s and dose in uR. It
-        appears that the device uses a fixed 100Sv/R converstion.
+        appears that the device uses a fixed 100 Sv/R conversion.
 
         If count_unit_cpm is not specified, the count rate register(s) will be set to
         the specified values without any conversion. If it is specified, count rate
@@ -515,7 +575,7 @@ class RadiaCode:
         argument will be assumed to be in uSv, will be converted to uR and stored,
         and the display unit will be set to Sv.  If dose_unit_sv is False, the dose
         argument will be assumed to be in uR, will be stored as such, and the display
-        unit will be set to Sv.
+        unit will be set to R.
         """
 
         which_limits = []
