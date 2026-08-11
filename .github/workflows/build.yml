@@ -17,11 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libglib2.0-dev
-
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
 
@@ -46,12 +41,6 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Install system dependencies
-        if: matrix.platform.os == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libglib2.0-dev
-
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
         with:
@@ -74,10 +63,6 @@ jobs:
           whl=$(ls dist/*.whl)
           python -m pip install "$whl[examples]"
 
-      # TODO: Enable when tests are added
-      # - name: Run tests
-      #   run: uv run pytest -ra -v
-
   release:
     if: startsWith(github.ref, 'refs/tags/')
     needs: [lint, test]
@@ -86,11 +71,6 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-
-      - name: Install system dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libglib2.0-dev
 
       - name: Set up uv
         uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0

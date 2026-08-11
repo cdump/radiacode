@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import datetime
 
 from radiacode.bytes_buffer import BytesBuffer

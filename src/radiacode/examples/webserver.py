@@ -80,7 +80,9 @@ async def on_startup(app):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of radiascan device')
+    parser.add_argument(
+        '--bluetooth-mac', type=str, required=False, help='Bluetooth device identifier (MAC address or macOS UUID)'
+    )
     parser.add_argument('--listen-host', type=str, required=False, default='0.0.0.0', help='listen host for webserver')
     parser.add_argument('--listen-port', type=int, required=False, default=8080, help='listen port for webserver')
     args = parser.parse_args()

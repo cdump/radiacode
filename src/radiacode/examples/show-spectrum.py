@@ -24,7 +24,7 @@ Command line options:
 
   Options:
     -h, --help          show this help message and exit
-    -b BLUETOOTH_MAC, --bluetooth-mac BLUETOOTH_MAC  Bluetooth MAC address of device
+    -b BLUETOOTH_MAC, --bluetooth-mac BLUETOOTH_MAC  Bluetooth device identifier
     -s SERIAL_NUMBER, --serial-number SERIAL_NUMBER  serial number of device
     -r, --restart       restart spectrum accumulation
     -R, --Reset         reset spectrum stored in device
@@ -136,7 +136,9 @@ def plot_RC102Spectrum():
         + 'show differential and updated cumulative spectrum, '
         + 'and optionally save data to file in yaml format.'
     )
-    parser.add_argument('-b', '--bluetooth-mac', type=str, required=False, help='bluetooth MAC address of device')
+    parser.add_argument(
+        '-b', '--bluetooth-mac', type=str, required=False, help='Bluetooth device identifier (MAC address or macOS UUID)'
+    )
     parser.add_argument('-s', '--serial-number', type=str, required=False, help='serial number of device')
     parser.add_argument('-r', '--restart', action='store_true', help='restart spectrum accumulation')
     parser.add_argument('-R', '--Reset', action='store_true', help='reset spectrum stored in device')
@@ -163,7 +165,7 @@ def plot_RC102Spectrum():
     if not quiet:
         print(f'\n *==* script {sys.argv[0]} executing')
         if bluetooth_mac is not None:
-            print(f'    connecting via Bluetooth, MAC {bluetooth_mac}')
+            print(f'    connecting via Bluetooth, identifier {bluetooth_mac}')
         elif serial_number is not None:
             print(f'    connect via USB to device with SN {serial_number}')
         else:

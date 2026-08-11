@@ -5,9 +5,11 @@ via USB or Bluetooth connections. It supports device configuration, data acquisi
 spectrum analysis.
 """
 
+from __future__ import annotations
+
 import datetime
-import platform
 import struct
+import weakref
 from typing import Optional
 
 from radiacode.bytes_buffer import BytesBuffer
@@ -62,8 +64,8 @@ class RadiaCode:
         or USB, initializes the device, and performs firmware compatibility checks.
 
         Args:
-            bluetooth_mac: Optional MAC address for Bluetooth connection. If provided and
-                         Bluetooth is supported on the system, will connect via Bluetooth.
+            bluetooth_mac: Optional Bluetooth device identifier. This is normally a MAC
+                         address on Linux and Windows, and a CoreBluetooth UUID on macOS.
             serial_number: Optional USB serial number to connect to a specific device when
                          multiple devices are connected. Used only for USB connections.
             ignore_firmware_compatibility_check: If True, skips the firmware version
@@ -74,54 +76,64 @@ class RadiaCode:
                       ignore_firmware_compatibility_check is False.
 
         Note:
-            - Bluetooth connectivity is not supported on macOS systems
             - If both bluetooth_mac and serial_number are None, connects to the first
               available USB device
             - The device is initialized with the current system time
         """
         self._seq = 0
 
-        # Bluepy doesn't support MacOS: https://github.com/IanHarvey/bluepy/issues/44
-        self._bt_supported = platform.system() != 'Darwin'
-
-        if bluetooth_mac is not None and self._bt_supported is True:
+        if bluetooth_mac is not None:
             self._connection = Bluetooth(bluetooth_mac)
         else:
             self._connection = Usb(serial_number=serial_number)
+        self._finalizer = weakref.finalize(self, self._connection.close) if isinstance(self._connection, Bluetooth) else None
 
-        # init
-        self.execute(COMMAND.SET_EXCHANGE, b'\x01\xff\x12\xff')
-        self.set_local_time(datetime.datetime.now())
-        self.device_time(0)
-        self._base_time = datetime.datetime.now() + datetime.timedelta(seconds=128)
+        try:
+            # init
+            self.execute(COMMAND.SET_EXCHANGE, b'\x01\xff\x12\xff')
+            self.set_local_time(datetime.datetime.now())
+            self.device_time(0)
+            self._base_time = datetime.datetime.now() + datetime.timedelta(seconds=128)
 
-        (_, (vmaj, vmin, _)) = self.fw_version()
-        if ignore_firmware_compatibility_check is False and vmaj < 4 or (vmaj == 4 and vmin < 8):
-            raise Exception(
-                f'Incompatible firmware version {vmaj}.{vmin}, >=4.8 required. Upgrade device firmware or use radiacode==0.2.2'
-            )
+            (_, (vmaj, vmin, _)) = self.fw_version()
+            if ignore_firmware_compatibility_check is False and vmaj < 4 or (vmaj == 4 and vmin < 8):
+                raise Exception(
+                    f'Incompatible firmware version {vmaj}.{vmin}, >=4.8 required. Upgrade device firmware or use radiacode==0.2.2'
+                )
 
-        self._spectrum_format_version = 0
-        for line in self.configuration().split('\n'):
-            if line.startswith('SpecFormatVersion'):
-                self._spectrum_format_version = int(line.split('=')[1])
-                break
+            self._spectrum_format_version = 0
+            for line in self.configuration().split('\n'):
+                if line.startswith('SpecFormatVersion'):
+                    self._spectrum_format_version = int(line.split('=')[1])
+                    break
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self) -> None:
+        """Close the device connection and release its resources."""
+        if self._finalizer is not None:
+            self._finalizer()
 
     def base_time(self) -> datetime.datetime:
         return self._base_time
 
     def execute(self, reqtype: COMMAND, args: Optional[bytes] = None) -> BytesBuffer:
-        req_seq_no = 0x80 + self._seq
-        self._seq = (self._seq + 1) % 32
+        try:
+            req_seq_no = 0x80 + self._seq
+            self._seq = (self._seq + 1) % 32
 
-        req_header = struct.pack('<HBB', int(reqtype), 0, req_seq_no)
-        request = req_header + (args or b'')
-        full_request = struct.pack('<I', len(request)) + request
+            req_header = struct.pack('<HBB', int(reqtype), 0, req_seq_no)
+            request = req_header + (args or b'')
+            full_request = struct.pack('<I', len(request)) + request
 
-        response = self._connection.execute(full_request)
-        resp_header = response.unpack('<4s')[0]
-        assert req_header == resp_header, f'req={req_header.hex()} resp={resp_header.hex()}'
-        return response
+            response = self._connection.execute(full_request)
+            resp_header = response.unpack('<4s')[0]
+            assert req_header == resp_header, f'req={req_header.hex()} resp={resp_header.hex()}'
+            return response
+        except (KeyboardInterrupt, SystemExit):
+            self.close()
+            raise
 
     def read_request(self, command_id: int | VS | VSFR) -> BytesBuffer:
         r = self.execute(COMMAND.RD_VIRT_STRING, struct.pack('<I', int(command_id)))
