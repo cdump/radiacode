@@ -53,3 +53,45 @@ def decode_RC_VS_SPECTRUM(br: BytesBuffer, format_version: int) -> Spectrum:
         a2=a2,
         counts=counts,
     )
+
+
+def decode_RC_VS_SPEC_RESET(br: BytesBuffer, format_version: int) -> Spectrum:
+    """Decode the live/current spectrum (VS 0x207).
+
+    Unlike SPEC_ACCUM (0x205) / SPECTRUM (0x200), SPEC_RESET carries no
+    calibration coefficients: the header is just `ts(I)` followed by the
+    per-channel counts.
+    """
+    ts = br.unpack('<I')[0]
+
+    assert format_version in {0, 1}, f'unspported format_version={format_version}'
+    counts = decode_counts_v0(br) if format_version == 0 else decode_counts_v1(br)
+
+    return Spectrum(
+        duration=datetime.timedelta(seconds=ts),
+        a0=0.0,
+        a1=0.0,
+        a2=0.0,
+        counts=counts,
+    )
+
+
+def decode_RC_VS_SPEC_DIFF(br: BytesBuffer, format_version: int) -> tuple[int, list]:
+    """Decode the spectrogram per-channel count diff (VS 0x206).
+
+    The header is `(duration_seconds(I), 0(I))`. The body is the change in
+    each channel since the previous spectrum read, v1-compressed (see §10 /
+    `decode_counts_v1`).
+
+    NOTE: Only the version-1 encoding has been observed in live captures;
+    `format_version` is accepted for compatibility but the body is always
+    decoded as version 1.
+    """
+    duration_seconds = br.unpack('<I')[0]
+    br.unpack('<I')[0]
+
+    if format_version not in {0, 1}:
+        raise Exception(f'unspported format_version={format_version} for SPEC_DIFF')
+
+    counts = decode_counts_v1(br)
+    return duration_seconds, counts

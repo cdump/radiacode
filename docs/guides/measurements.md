@@ -9,11 +9,19 @@
 | `RealTimeData` | Current count rate and dose rate, with percentage errors |
 | `RawData` | Unfiltered count-rate and dose-rate values |
 | `DoseRateDB` | Historical dose-rate database sample |
+| `DoseCounter` | Accumulated-dose counter reading |
 | `RareData` | Accumulated dose, temperature, battery charge, and duration |
 | `Event` | Device event and its event-specific parameter |
 
 All `dt` fields are `datetime.datetime` values derived from the connection's
 base time and the timestamp offset supplied by the device.
+
+!!! note
+
+    The library refreshes `base_time` to host "now" on every `data_buf()` read
+    and periodically reasserts the device clock (`DEVICE_TIME=0` every ~60 s)
+    so the newest records land within a few seconds of wall-clock time. Older
+    records in the buffer can be minutes or hours old.
 
 ```python
 import time

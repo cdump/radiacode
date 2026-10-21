@@ -6,8 +6,10 @@ Install the optional dependencies first:
 python -m pip install --upgrade "radiacode[examples]"
 ```
 
-Every command accepts `--help`. The common connection flags are
-`--bluetooth-mac` for Bluetooth and `--serial` for selecting a USB device.
+Every command accepts `--help`; the argument sets differ per example. `--bluetooth-mac`
+selects a Bluetooth device across most examples; `basic` and `show-spectrum` also accept
+`--serial` / `--serial-number` for selecting a specific USB device, and `narodmon` uses
+`--connection usb|bluetooth`.
 
 ## Terminal output
 
