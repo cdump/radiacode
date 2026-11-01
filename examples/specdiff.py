@@ -53,16 +53,21 @@ def decode_v1_counts(data):
             if vlen == 0:
                 v = 0
             elif vlen == 1:
-                v = struct.unpack_from('<B', data, pos)[0]; pos += 1
+                v = struct.unpack_from('<B', data, pos)[0]
+                pos += 1
             elif vlen == 2:
-                v = struct.unpack_from('<H', data, pos)[0]; pos += 2
+                v = struct.unpack_from('<H', data, pos)[0]
+                pos += 2
             elif vlen == 3:
-                v = last + struct.unpack_from('<h', data, pos)[0]; pos += 2
+                v = last + struct.unpack_from('<h', data, pos)[0]
+                pos += 2
             elif vlen == 4:
-                a, b, c = struct.unpack_from('<BBb', data, pos); pos += 3
+                a, b, c = struct.unpack_from('<BBb', data, pos)
+                pos += 3
                 v = last + ((c << 16) | (b << 8) | a)
             elif vlen == 5:
-                v = last + struct.unpack_from('<i', data, pos)[0]; pos += 4
+                v = last + struct.unpack_from('<i', data, pos)[0]
+                pos += 4
             else:
                 raise ValueError(f'unsupported vlen={vlen}')
             last = v
@@ -104,14 +109,18 @@ def main():
                 counts = decode_v1_counts(data[16:])
             except ValueError as e:
                 counts = f'ERR {e}'
-            print(f'{ln:5d} {which:10s} len={len(data):4d} ts={ts:9d} a0={a0:.4f} a1={a1:.4f} a2={a2:.4f} channels={len(counts) if isinstance(counts, list) else counts}')
+            print(
+                f'{ln:5d} {which:10s} len={len(data):4d} ts={ts:9d} a0={a0:.4f} a1={a1:.4f} a2={a2:.4f} channels={len(counts) if isinstance(counts, list) else counts}'
+            )
         elif which == 'SPEC_RESET' and show_reset:
             ts = struct.unpack_from('<I', data)[0]
             try:
                 counts = decode_v1_counts(data[4:])
             except ValueError as e:
                 counts = f'ERR {e}'
-            print(f'{ln:5d} {which:10s} len={len(data):4d} ts={ts:9d} channels={len(counts) if isinstance(counts, list) else counts}')
+            print(
+                f'{ln:5d} {which:10s} len={len(data):4d} ts={ts:9d} channels={len(counts) if isinstance(counts, list) else counts}'
+            )
         elif which == 'SPEC_DIFF' and show_diff:
             c0, c1 = struct.unpack_from('<II', data)
             print(f'{ln:5d} {which:10s} len={len(data):4d} hdr=({c0}, {c1}) body={data[8:].hex(" ")}')
