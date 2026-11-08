@@ -24,14 +24,73 @@ _RATE_EVENTS = {
 # Event ids that carry the extra rate + error payload after the base header.
 _RATE_EVENT_IDS = {int(e) for e in _RATE_EVENTS}
 
+# RealTimeData (gid 0) body size. Firmware <= 4.14 uses 15 bytes
+# (`cr(f) dr(f) cr_err(u16) dr_err(u16) flags(u16) rt_flags(u8)`); firmware 4.15
+# appends one further byte (observed always 0x00, meaning undetermined), making
+# the body 16 bytes. The extra byte sits after `rt_flags`, so the first 15 bytes
+# keep the same layout in both versions. The size is auto-detected per buffer.
+_RT_LEGACY_SIZE = 15
+_RT_NEW_SIZE = 16
+
 # Per-gid body size for single-sample groups (after the 7-byte record header).
-_SINGLE_SIZE = {0: 15, 1: 8, 2: 16, 3: 14, 4: 6}
+# gid 0 (RealTimeData) is overridden by the detected `realtime_size`.
+_SINGLE_SIZE = {0: _RT_LEGACY_SIZE, 1: 8, 2: 16, 3: 14, 4: 6}
 # Per-gid body size for multi-sample groups (after header + samples_num/smpl_time).
 _MULTI_SIZE = {1: 8, 2: 16, 3: 14, 4: 6}
 
 
+def _single_size(gid: int, realtime_size: int) -> int:
+    return realtime_size if gid == 0 else _SINGLE_SIZE[gid]
+
+
+def _probe(data: bytes, realtime_size: int) -> tuple[bool, int]:
+    """Strictly walk `data` assuming a RealTimeData body of `realtime_size`.
+
+    Returns `(consumed_exactly, n_records)`: whether the walk landed exactly on
+    the end of the buffer (all records well-formed), and how many records were
+    decoded before the first malformed/truncated one.
+    """
+    off = 0
+    n = len(data)
+    nrec = 0
+    while True:
+        size = _record_size(data, off, realtime_size)
+        if size is None:
+            return False, nrec
+        off += 7 + size
+        nrec += 1
+        if off >= n:
+            return off == n, nrec
+
+
+def _detect_realtime_size(data: bytes) -> int:
+    """Pick the RealTimeData body size (15 or 16) that best explains `data`.
+
+    A buffer that contains RealTimeData records parses cleanly end-to-end under
+    exactly one of the two sizes; the other misaligns on the first such record.
+    When no RealTimeData record is present both sizes parse identically and the
+    legacy size is returned (the choice is then irrelevant). For a corrupt or
+    truncated buffer (neither size reaches the end) the size that decoded more
+    records wins.
+    """
+    if len(data) < 7:
+        return _RT_LEGACY_SIZE
+    r15 = _probe(data, _RT_LEGACY_SIZE)
+    r16 = _probe(data, _RT_NEW_SIZE)
+    if r15[0] and not r16[0]:
+        return _RT_LEGACY_SIZE
+    if r16[0] and not r15[0]:
+        return _RT_NEW_SIZE
+    if r15[0] and r16[0]:
+        return _RT_LEGACY_SIZE
+    return _RT_LEGACY_SIZE if r15[1] >= r16[1] else _RT_NEW_SIZE
+
+
 def decode_VS_DATA_BUF(
-    br: BytesBuffer, base_time: datetime.datetime, ignore_errors: bool = True
+    br: BytesBuffer,
+    base_time: datetime.datetime,
+    ignore_errors: bool = True,
+    realtime_size: int | None = None,
 ) -> list[RealTimeData | DoseRateDB | DoseCounter | RareData | RawData | Event]:
     """Decode a data buffer into a flat list of records.
 
@@ -41,12 +100,18 @@ def decode_VS_DATA_BUF(
     Timestamps: `ts_offset` is in 0.01-second units; `base_time` should be the
     host wall-clock time at the moment the buffer was read.
 
+    `realtime_size` is the RealTimeData (gid 0) body size: 15 for firmware
+    <= 4.14, 16 for firmware 4.15 (which appends one extra byte). When omitted
+    it is auto-detected from the buffer, so a single decoder handles both.
+
     Malformed / truncated records are skipped and decoding resumes at the next
     plausible record boundary, so a single glitch does not discard the rest of
     the buffer. With `ignore_errors=False` the first malformed record raises
     instead.
     """
     ret: list[RealTimeData | DoseRateDB | DoseCounter | RareData | RawData | Event] = []
+    if realtime_size is None:
+        realtime_size = _detect_realtime_size(br.data())
     next_seq = None
     while br.size() >= 7:
         seq, eid, gid, ts_offset = br.unpack('<BBBi')
@@ -69,20 +134,20 @@ def decode_VS_DATA_BUF(
                 samples_num = struct.unpack_from('<H', br.data(), 0)[0]
                 if br.size() < 6 + _MULTI_SIZE[gid] * samples_num:
                     raise ValueError(f'multi-block body does not fit ({samples_num=})')
-            ret.extend(_decode_entry(br, eid, gid, dt))
+            ret.extend(_decode_entry(br, eid, gid, dt, realtime_size))
         except ValueError:
             # truncated / malformed record: skip it and re-sync to the next record
             if not ignore_errors:
                 print(f'BytesBuffer error while decoding {eid=}/{gid=} [{br.data().hex(" ")}]')
                 raise
-            if not _resync(br):
+            if not _resync(br, realtime_size):
                 break
             next_seq = None
 
     return ret
 
 
-def _record_size(data: bytes, off: int) -> int | None:
+def _record_size(data: bytes, off: int, realtime_size: int = _RT_LEGACY_SIZE) -> int | None:
     """Return the body size (after the 7-byte header) of the record at `off`,
     or None if it doesn't look like a plausible record."""
     n = len(data)
@@ -92,7 +157,7 @@ def _record_size(data: bytes, off: int) -> int | None:
     gid = data[off + 2]
     if eid == 0:
         if gid in _SINGLE_SIZE:
-            size = _SINGLE_SIZE[gid]
+            size = _single_size(gid, realtime_size)
         elif gid == 7:
             event = data[off + 7]
             size = 4 + (6 if event in _RATE_EVENT_IDS else 0)
@@ -113,7 +178,7 @@ def _record_size(data: bytes, off: int) -> int | None:
     return size
 
 
-def _resync(br: BytesBuffer, max_scan: int = 512) -> bool:
+def _resync(br: BytesBuffer, realtime_size: int = _RT_LEGACY_SIZE, max_scan: int = 512) -> bool:
     """After a malformed record, scan forward for the next plausible record
     header and reposition the buffer there. Returns True if a re-sync point was
     found, leaving the buffer positioned at that record's header.
@@ -126,18 +191,18 @@ def _resync(br: BytesBuffer, max_scan: int = 512) -> bool:
     # scan from start+1 so we always make progress and never re-pick the malformed record
     limit = min(start + max_scan, len(data) - 7)
     for off in range(start + 1, limit):
-        size = _record_size(data, off)
+        size = _record_size(data, off, realtime_size)
         if size is None:
             continue
         end = off + 7 + size
-        if _record_size(data, end) is not None:
+        if _record_size(data, end, realtime_size) is not None:
             br._pos = off
             return True
     return False
 
 
 def _decode_entry(
-    br: BytesBuffer, eid: int, gid: int, dt: datetime.datetime
+    br: BytesBuffer, eid: int, gid: int, dt: datetime.datetime, realtime_size: int = _RT_LEGACY_SIZE
 ) -> list[RealTimeData | DoseRateDB | DoseCounter | RareData | RawData | Event]:
     """Decode one record group; multi-sample groups are expanded per sample."""
     ret: list[RealTimeData | DoseRateDB | DoseCounter | RareData | RawData | Event] = []
@@ -145,6 +210,11 @@ def _decode_entry(
     if eid == 0:  # single-sample groups
         if gid == 0:  # GRP_RealTimeData
             count_rate, dose_rate, count_rate_err, dose_rate_err, flags, rt_flags = br.unpack('<ffHHHB')
+            # firmware 4.15 appends one further byte after rt_flags; consume it
+            # so the next record stays aligned (its meaning is undetermined).
+            extra = realtime_size - 15
+            if extra > 0:
+                br.unpack(f'<{extra}s')
             ret.append(
                 RealTimeData(
                     dt=dt,

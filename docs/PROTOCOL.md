@@ -1,8 +1,8 @@
 # RadiaCode Device Protocol Reference
 
 This document describes the wire protocol used by RadiaCode radiation detectors
-(RC-10x / RC-110 family, firmware 4.14). It is intended as a complete reference
-for implementing the protocol on other platforms and languages.
+(RC-10x / RC-110 family, firmware 4.14–4.15). It is intended as a complete
+reference for implementing the protocol on other platforms and languages.
 
 The canonical Python implementation lives in `src/radiacode/`. The wire formats
 described here were verified against debug logs captured from the Android app
@@ -359,12 +359,22 @@ Implementations should **expand multi-sample blocks into individual records**.
 
 | gid | Type        | Per-record payload                          |
 |-----|-------------|---------------------------------------------|
-| 0   | RealTimeData| `cr(f) dr(f) cr_err(u16) dr_err(u16) flags(u16) rt_flags(u8)` |
+| 0   | RealTimeData| `cr(f) dr(f) cr_err(u16) dr_err(u16) flags(u16) rt_flags(u8)` (+1 byte on FW 4.15) |
 | 1   | RawData     | `count_rate(f) dose_rate(f)`                |
 | 2   | DoseRateDB  | `count(u32) cr(f) dr(f) err(u16) flags(u16)`|
 | 3   | RareData    | `duration(u32) dose(f) temp(u16) charge(u16) flags(u16)` |
 | 4   | DoseCounter | `dose_counter(u32) flags(u16)`              |
 | 7   | Event       | `event(u8) mask(u8) flags(u16)` + optional alarm rate (below) |
+
+**RealTimeData size change (FW 4.15):** on firmware <= 4.14 the gid 0 body is 15
+bytes as listed. Firmware 4.15 appends **one further byte after `rt_flags`**
+(16 bytes total); the first 15 bytes keep the identical layout, so only the
+record length changes. The added byte has been observed as `0x00` on every RC-102
+/ RC-103G / RC-110 capture to date and its meaning is undetermined; the decoder
+consumes it to keep subsequent records aligned. Because the buffer carries no
+framing, the body size is auto-detected per buffer (the two sizes are mutually
+exclusive: a buffer containing RealTimeData records parses end-to-end under
+exactly one of them).
 
 The buffer has no framing/lengths, so a corrupt record can only be recovered by
 heuristics. The reference decoder **skips a malformed record and re-syncs** to
