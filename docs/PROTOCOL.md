@@ -352,8 +352,13 @@ fixed connect-time base drifts on long sessions, and a +128 s offset
 ~128 s too far into the future.
 
 **`eid` is a single/multi flag:** `eid=0` = one record; `eid=1` = a multi-sample
-block (`samples_num(u16) smpl_time_ms(u32)` then `samples_num` records).
+block (`samples_num(u16) smpl_time(u32)` then `samples_num` records).
 Implementations should **expand multi-sample blocks into individual records**.
+`smpl_time` is the interval between consecutive samples, in the **same 10 ms
+units as `ts_offset`** (not milliseconds despite some tooling's naming). The
+samples run oldest→newest starting at the block's `ts_offset`, so sample `i` is
+timestamped `ts_offset + i*smpl_time*10 ms`. (Verified against DoseRateDB blocks
+that tile the single-sample logging grid exactly.)
 
 **`gid` selects the record type** (same for single and multi):
 

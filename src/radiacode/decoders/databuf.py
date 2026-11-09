@@ -273,17 +273,23 @@ def _decode_entry(
             raise ValueError(f'Unknown eid:{eid} gid:{gid}')
 
     else:  # eid == 1: multi-sample groups, expanded into per-sample records
-        samples_num, smpl_time_ms = br.unpack('<HI')
+        samples_num, smpl_time = br.unpack('<HI')
+        # `smpl_time` is the interval between consecutive samples, in the same
+        # 10 ms units as ts_offset (verified: a DoseRateDB block tiles the
+        # single-sample grid exactly at smpl_time*10 ms). The samples run oldest
+        # to newest starting at the group timestamp `dt`, so sample i is at
+        # dt + i*smpl_time*10ms rather than all sharing dt.
+        step = datetime.timedelta(milliseconds=smpl_time * 10)
         if gid == 1:  # GRP_RawData
-            for _ in range(samples_num):
+            for i in range(samples_num):
                 count_rate, dose_rate = br.unpack('<ff')
-                ret.append(RawData(dt=dt, count_rate=count_rate, dose_rate=dose_rate))
+                ret.append(RawData(dt=dt + i * step, count_rate=count_rate, dose_rate=dose_rate))
         elif gid == 2:  # GRP_DoseRateDB
-            for _ in range(samples_num):
+            for i in range(samples_num):
                 count, count_rate, dose_rate, dose_rate_err, flags = br.unpack('<IffHH')
                 ret.append(
                     DoseRateDB(
-                        dt=dt,
+                        dt=dt + i * step,
                         count=count,
                         count_rate=count_rate,
                         dose_rate=dose_rate,
@@ -292,11 +298,11 @@ def _decode_entry(
                     )
                 )
         elif gid == 3:  # GRP_RareData
-            for _ in range(samples_num):
+            for i in range(samples_num):
                 duration, dose, temperature, charge_level, flags = br.unpack('<IfHHH')
                 ret.append(
                     RareData(
-                        dt=dt,
+                        dt=dt + i * step,
                         duration=duration,
                         dose=dose,
                         temperature=(temperature - 2000) / 100,
@@ -305,9 +311,9 @@ def _decode_entry(
                     )
                 )
         elif gid == 4:  # GRP_DoseCounter
-            for _ in range(samples_num):
+            for i in range(samples_num):
                 dose_counter, flags = br.unpack('<IH')
-                ret.append(DoseCounter(dt=dt, dose_counter=dose_counter, flags=RecordFlags(flags)))
+                ret.append(DoseCounter(dt=dt + i * step, dose_counter=dose_counter, flags=RecordFlags(flags)))
         else:
             raise ValueError(f'Unknown eid:{eid} gid:{gid}')
 
