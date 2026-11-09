@@ -159,6 +159,8 @@ def _record_size(data: bytes, off: int, realtime_size: int = _RT_LEGACY_SIZE) ->
         if gid in _SINGLE_SIZE:
             size = _single_size(gid, realtime_size)
         elif gid == 7:
+            if off + 8 > n:  # event byte is at off+7; the 7-byte header alone is not enough
+                return None
             event = data[off + 7]
             size = 4 + (6 if event in _RATE_EVENT_IDS else 0)
         else:
