@@ -7,17 +7,22 @@
       members:
         - close
         - base_time
+        - set_exchange
         - status
         - set_local_time
         - fw_signature
+        - flash_area
         - fw_version
         - hw_serial_number
         - configuration
+        - commands
         - text_message
         - serial_number
         - data_buf
         - spectrum
         - spectrum_accum
+        - spectrum_reset_data
+        - spectrum_diff
         - dose_reset
         - spectrum_reset
         - energy_calib

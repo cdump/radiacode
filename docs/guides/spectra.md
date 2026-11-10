@@ -60,3 +60,14 @@ with RadiaCode() as device:
 
 `spectrum_reset()` clears the current spectrum on the device. This is a device
 operation and cannot be undone by the library.
+
+## Live spectrum and spectrogram diff
+
+`spectrum_reset_data()` reads the live/current spectrum (VS `0x207`) that
+`spectrum_reset()` clears. Unlike `spectrum()`/`spectrum_accum()`, it carries
+no calibration coefficients.
+
+`spectrum_diff()` returns the per-channel count change since the previous
+spectrum read, used by the device's spectrogram view. It returns a
+`(duration_seconds, data)` tuple where `data` is a full 1024-channel count list
+(version-1 encoding).

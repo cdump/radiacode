@@ -15,19 +15,29 @@ from typing import Optional
 
 from radiacode.bytes_buffer import BytesBuffer
 from radiacode.decoders.databuf import decode_VS_DATA_BUF
-from radiacode.decoders.spectrum import decode_RC_VS_SPECTRUM
+from radiacode.decoders.exchange import decode_SET_EXCHANGE
+from radiacode.decoders.flash import decode_RC_RD_FLASH_AREA
+from radiacode.decoders.spectrum import (
+    decode_RC_VS_SPEC_DIFF,
+    decode_RC_VS_SPEC_RESET,
+    decode_RC_VS_SPECTRUM,
+)
 from radiacode.transports.bluetooth import Bluetooth
 from radiacode.transports.usb import Usb
 from radiacode.types import (
     _VSFR_FORMATS,
     COMMAND,
     CTRL,
+    DeviceFlags,
+    SetExchange,
     VS,
     VSFR,
     AlarmLimits,
     DisplayDirection,
+    DoseCounter,
     DoseRateDB,
     Event,
+    FlashArea,
     RareData,
     RawData,
     RealTimeData,
@@ -86,6 +96,8 @@ class RadiaCode:
         Raises:
             Exception: If the device firmware version is incompatible (< 4.8) and
                       ignore_firmware_compatibility_check is False.
+            RuntimeError: If the device is already in use on another interface
+                      (e.g. connected over USB while requesting Bluetooth).
 
         Note:
             - If both bluetooth_mac and serial_number are None, connects to the first
@@ -102,10 +114,10 @@ class RadiaCode:
 
         try:
             # init
-            self.execute(COMMAND.SET_EXCHANGE, b'\x01\xff\x12\xff')
+            self.set_exchange()
             self.set_local_time(datetime.datetime.now())
             self.device_time(0)
-            self._base_time = datetime.datetime.now() + datetime.timedelta(seconds=128)
+            self._base_time = datetime.datetime.now()
 
             (_, (vmaj, vmin, _)) = self.fw_version()
             if ignore_firmware_compatibility_check is False and vmaj < 4 or (vmaj == 4 and vmin < 8):
@@ -116,7 +128,10 @@ class RadiaCode:
             self._spectrum_format_version = 0
             for line in self.configuration().split('\n'):
                 if line.startswith('SpecFormatVersion'):
-                    self._spectrum_format_version = int(line.split('=')[1])
+                    # Only versions 0 (raw u32) and 1 (run-length) are supported.
+                    # A device reporting a higher value is clamped to 1, since
+                    # only version 1 has been observed in live captures.
+                    self._spectrum_format_version = min(int(line.split('=')[1]), 1)
                     break
         except BaseException:
             self.close()
@@ -140,7 +155,10 @@ class RadiaCode:
         self.close()
 
     def base_time(self) -> datetime.datetime:
-        """Return the host-derived base time used for buffered timestamps."""
+        """Return the host-derived base time used for buffered timestamps.
+
+        This is refreshed to host "now" on each `data_buf()` read.
+        """
         return self._base_time
 
     def execute(self, reqtype: COMMAND, args: Optional[bytes] = None) -> BytesBuffer:
@@ -252,12 +270,41 @@ class RadiaCode:
         assert r.size() == 0
         return ret
 
-    def status(self) -> str:
-        """Return the device status flags as a diagnostic string."""
-        r = self.execute(COMMAND.GET_STATUS)
-        flags = r.unpack('<I')
+    def set_exchange(self) -> SetExchange:
+        """Negotiate the transport and return the interface / connect status.
+
+        `SET_EXCHANGE` is the first command sent on connect. The response
+        reports the device's active physical interface (`InterfaceType`:
+        `USB` or `BLE`) and whether that interface is ready for this client.
+
+        Raises:
+            RuntimeError: If the device reports its interface is busy — e.g.
+                the Android app tries Bluetooth while a desktop app holds the
+                USB interface.
+
+        Returns:
+            The decoded `SetExchange` descriptor.
+        """
+        r = self.execute(COMMAND.SET_EXCHANGE, b'\x01\xff\x12\xff')
+        exchange = decode_SET_EXCHANGE(r)
         assert r.size() == 0
-        return f'status flags: {flags}'
+        if not exchange.if_ready:
+            raise RuntimeError(
+                f'Device interface {exchange.if_type.name} is busy — it is in use by '
+                'another application; disconnect it before connecting this client.'
+            )
+        return exchange
+
+    def status(self) -> DeviceFlags:
+        """Return the device status flags as a typed `DeviceFlags` object.
+
+        Each named bit is available as a boolean attribute (e.g.
+        `flags.init_bit`) and the raw mask as `flags.value`.
+        """
+        r = self.execute(COMMAND.GET_STATUS)
+        flags = r.unpack('<I')[0]
+        assert r.size() == 0
+        return DeviceFlags(flags)
 
     def set_local_time(self, dt: datetime.datetime) -> None:
         """Set the device's local time.
@@ -277,6 +324,22 @@ class RadiaCode:
         filename = r.unpack_string()
         idstring = r.unpack_string()
         return f'Signature: {signature:08X}, FileName="{filename}", IdString="{idstring}"'
+
+    def flash_area(self, area_index: int = 1) -> FlashArea:
+        """Read and decode the flash public-area descriptor.
+
+        Args:
+            area_index: Flash area index to read; the firmware descriptor is
+                area 1 on RC-10x devices.
+
+        Returns:
+            The decoded public-area descriptor (see `FlashArea`).
+
+        Raises:
+            ValueError: If the device reports a non-zero flash status.
+        """
+        r = self.execute(COMMAND.RD_FLASH_AREA, struct.pack('<I', area_index))
+        return decode_RC_RD_FLASH_AREA(r)
 
     def fw_version(self) -> tuple[tuple[int, int, str], tuple[int, int, str]]:
         """Get firmware version information.
@@ -341,8 +404,14 @@ class RadiaCode:
         """
         self.write_request(VSFR.DEVICE_TIME, struct.pack('<I', v))
 
-    def data_buf(self) -> list[DoseRateDB | RareData | RealTimeData | RawData | Event]:
-        """Get buffered measurement data from the device."""
+    def data_buf(self) -> list[DoseRateDB | DoseCounter | RareData | RealTimeData | RawData | Event]:
+        """Get buffered measurement data from the device.
+
+        Buffer timestamps are relative to the device's current time, so the
+        base is refreshed to host "now" on each read to keep them accurate on
+        long-running sessions.
+        """
+        self._base_time = datetime.datetime.now()
         r = self.read_request(VS.DATA_BUF)
         return decode_VS_DATA_BUF(r, self._base_time)
 
@@ -363,6 +432,31 @@ class RadiaCode:
         """
         r = self.read_request(VS.SPEC_ACCUM)
         return decode_RC_VS_SPECTRUM(r, self._spectrum_format_version)
+
+    def spectrum_reset_data(self) -> Spectrum:
+        """Get the live/current spectrum (VS 0x207).
+
+        This is the spectrum that is reset by `spectrum_reset()`. Unlike
+        `spectrum_accum()`, it carries no calibration coefficients.
+
+        Returns:
+            Spectrum: Object containing the live spectrum data
+        """
+        r = self.read_request(VS.SPEC_RESET)
+        return decode_RC_VS_SPEC_RESET(r, self._spectrum_format_version)
+
+    def spectrum_diff(self) -> tuple[int, list]:
+        """Get the per-channel spectrum diff (VS 0x206).
+
+        Used by the device's spectrogram view. Returns `(duration_seconds, data)`
+        where `data` is the per-channel count change since the previous spectrum
+        read, a full 1024-channel count list (version-1 encoding).
+
+        Returns:
+            tuple[int, list]: duration in seconds, and the channel diff data
+        """
+        r = self.read_request(VS.SPEC_DIFF)
+        return decode_RC_VS_SPEC_DIFF(r, self._spectrum_format_version)
 
     def dose_reset(self) -> None:
         """Reset the accumulated dose measurements to zero.
