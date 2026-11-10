@@ -381,12 +381,9 @@ framing, the body size is auto-detected per buffer (the two sizes are mutually
 exclusive: a buffer containing RealTimeData records parses end-to-end under
 exactly one of them).
 
-The buffer has no framing/lengths, so a corrupt record can only be recovered by
-heuristics. The reference decoder **skips a malformed record and re-syncs** to
-the next plausible record (a candidate is accepted only if it is followed by
-another plausible record), so a single glitch does not discard the rest of the
-buffer. Multi-sample blocks are pre-validated against the remaining buffer
-before decoding, so a corrupt `samples_num` doesn't greedily consume the tail.
+The buffer has no framing/lengths, so a corrupt record desynchronizes everything
+after it. The reference decoder **stops at the first malformed record** rather
+than attempting heuristic re-sync.
 
 Units: `count_rate` is cps; `dose_rate` raw value × 1e7 ≈ nSv/h; `dose_rate_err`
 and `count_rate_err` are stored in tenths of percent (divide by 10);

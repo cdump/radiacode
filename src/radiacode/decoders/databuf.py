@@ -104,10 +104,9 @@ def decode_VS_DATA_BUF(
     <= 4.14, 16 for firmware 4.15 (which appends one extra byte). When omitted
     it is auto-detected from the buffer, so a single decoder handles both.
 
-    Malformed / truncated records are skipped and decoding resumes at the next
-    plausible record boundary, so a single glitch does not discard the rest of
-    the buffer. With `ignore_errors=False` the first malformed record raises
-    instead.
+    Decoding stops at the first malformed / truncated record: the buffer has no
+    framing, so there is nothing to re-align from. With `ignore_errors=False`
+    the first malformed record raises instead.
     """
     ret: list[RealTimeData | DoseRateDB | DoseCounter | RareData | RawData | Event] = []
     if realtime_size is None:
@@ -117,32 +116,19 @@ def decode_VS_DATA_BUF(
         seq, eid, gid, ts_offset = br.unpack('<BBBi')
         dt = base_time + datetime.timedelta(milliseconds=ts_offset * 10)
         if next_seq is not None and next_seq != seq:
-            # A discontinuity (a record was dropped by the device) is not fatal:
-            # the records present are still valid, so keep decoding.
             if not ignore_errors:
                 print(f'seq jump while processing {eid=} {gid=}, expect:{next_seq}, got:{seq} {br.size()=}')
-        next_seq = (seq + 1) % 256
+            break
 
+        next_seq = (seq + 1) % 256
         try:
-            # Validate multi-sample blocks before decoding them: a corrupt
-            # samples_num would otherwise greedily consume the rest of the
-            # buffer as samples. If the block body doesn't fit, treat it as a
-            # malformed record so we skip past it instead.
-            if eid == 1 and gid in _MULTI_SIZE:
-                if br.size() < 6:
-                    raise ValueError('truncated multi-block header')
-                samples_num = struct.unpack_from('<H', br.data(), 0)[0]
-                if br.size() < 6 + _MULTI_SIZE[gid] * samples_num:
-                    raise ValueError(f'multi-block body does not fit ({samples_num=})')
             ret.extend(_decode_entry(br, eid, gid, dt, realtime_size))
         except ValueError:
-            # truncated / malformed record: skip it and re-sync to the next record
+            # truncated / malformed record: the rest of the buffer is unaligned, stop
             if not ignore_errors:
                 print(f'BytesBuffer error while decoding {eid=}/{gid=} [{br.data().hex(" ")}]')
                 raise
-            if not _resync(br, realtime_size):
-                break
-            next_seq = None
+            break
 
     return ret
 
@@ -178,29 +164,6 @@ def _record_size(data: bytes, off: int, realtime_size: int = _RT_LEGACY_SIZE) ->
     if off + 7 + size > n:
         return None
     return size
-
-
-def _resync(br: BytesBuffer, realtime_size: int = _RT_LEGACY_SIZE, max_scan: int = 512) -> bool:
-    """After a malformed record, scan forward for the next plausible record
-    header and reposition the buffer there. Returns True if a re-sync point was
-    found, leaving the buffer positioned at that record's header.
-
-    A candidate is only accepted if the record parses *and* is followed by
-    another plausible record, which rejects most false positives in garbage.
-    """
-    start = br._pos
-    data = br._data
-    # scan from start+1 so we always make progress and never re-pick the malformed record
-    limit = min(start + max_scan, len(data) - 7)
-    for off in range(start + 1, limit):
-        size = _record_size(data, off, realtime_size)
-        if size is None:
-            continue
-        end = off + 7 + size
-        if _record_size(data, end, realtime_size) is not None:
-            br._pos = off
-            return True
-    return False
 
 
 def _decode_entry(
