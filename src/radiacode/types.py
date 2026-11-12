@@ -436,8 +436,12 @@ class COMMAND(Enum):
     WR_VIRT_STRING = 0x0827
     RD_VIRT_SFR_BATCH = 0x082A
     WR_VIRT_SFR_BATCH = 0x082B
+    RD_VIRT_STRING_BATCH = 0x082C
+    WR_VIRT_STRING_BATCH = 0x082D
     RD_FLASH = 0x081C
+    RD_FLASH_AREA = 0x081C  # alias, matches the Android app's naming
     SET_TIME = 0x0A04
+    SET_BT_EXCHANGE_ID = 0x0903
 
     def __int__(self) -> int:
         return self.value
