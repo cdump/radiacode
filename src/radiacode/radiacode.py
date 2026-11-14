@@ -200,7 +200,7 @@ class RadiaCode:
         assert retcode == 1
         assert r.size() == 0
 
-    def _batch_read_vsfrs(self, vsfr_ids: list[VSFR]) -> list[int | float]:
+    def batch_read_vsfrs(self, vsfr_ids: list[VSFR]) -> list[int | float]:
         """Read multiple virtual special-function registers.
 
         Args:
@@ -509,7 +509,7 @@ class RadiaCode:
             VSFR.CR_UNITS,
         ]
 
-        resp = self._batch_read_vsfrs(regs)
+        resp = self.batch_read_vsfrs(regs)
 
         dose_multiplier = 100 if resp[6] else 1
         count_multiplier = 60 if resp[7] else 1
