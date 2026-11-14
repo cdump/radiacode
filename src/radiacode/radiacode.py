@@ -341,6 +341,10 @@ class RadiaCode:
         """
         self.write_request(VSFR.DEVICE_TIME, struct.pack('<I', v))
 
+    def beep(self) -> None:
+        """Make the device vibrate and play a locator sound"""
+        self.write_request(VSFR.PLAY_SIGNAL, struct.pack('<I', 1))
+
     def data_buf(self) -> list[DoseRateDB | RareData | RealTimeData | RawData | Event]:
         """Get buffered measurement data from the device."""
         r = self.read_request(VS.DATA_BUF)
