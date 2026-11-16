@@ -307,7 +307,7 @@ class VSFR(Enum):
     SYS_STATUS = 0xFFFF000B
     SYS_MCU_VREF = 0xFFFF000C
     SYS_MCU_TEMP = 0xFFFF000D
-    SYS_FW_VER_BT = 0xFFFF010
+    SYS_FW_VER_BT = 0xFFFF0010
 
     def __int__(self) -> int:
         return self.value
