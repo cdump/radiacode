@@ -9,6 +9,7 @@ __all__ = [
     'CTRL',
     'DisplayDirection',
     'DoseRateDB',
+    'DoseCounter',
     'Event',
     'EventId',
     'RareData',
@@ -78,6 +79,21 @@ class DoseRateDB:
 
 
 @dataclass
+class DoseCounter:
+    """Accumulated-dose counter reading.
+
+    Attributes:
+        dt (datetime.datetime): Timestamp of the reading
+        dose_counter (int): Accumulated dose counter value in device protocol units
+        flags (int): Status flags
+    """
+
+    dt: datetime.datetime
+    dose_counter: int
+    flags: int
+
+
+@dataclass
 class RareData:
     """Periodic device status and accumulated dose data.
 
@@ -133,17 +149,28 @@ class EventId(Enum):
 class Event:
     """Device event record.
 
+    Alarm and off-scale events also carry the rate that triggered them, so
+    `count_rate`/`count_rate_err` or `dose_rate`/`dose_rate_err` may be set.
+
     Attributes:
         dt (datetime.datetime): Timestamp of the event
         event (int): Event type identifier
-        event_param1 (int): Event-specific parameter
+        event_param1 (int): Event-specific parameter (channel mask)
         flags (int): Event flags
+        count_rate (float): Count rate at alarm, if a count-rate event
+        count_rate_err (float): Count-rate error in percent, if a count-rate event
+        dose_rate (float): Dose rate at alarm, if a dose-rate event
+        dose_rate_err (float): Dose-rate error in percent, if a dose-rate event
     """
 
     dt: datetime.datetime
     event: EventId
     event_param1: int
     flags: int
+    count_rate: float | None = None
+    count_rate_err: float | None = None
+    dose_rate: float | None = None
+    dose_rate_err: float | None = None
 
 
 @dataclass
@@ -272,6 +299,7 @@ class VSFR(Enum):
     CR_UNITS = 0x8013
     DS_LEV1_uR = 0x8014
     DS_LEV2_uR = 0x8015
+    TEMP_UNITS = 0x8016
 
     CPS = 0x8020
     DR_uR_h = 0x8021
@@ -307,7 +335,7 @@ class VSFR(Enum):
     SYS_STATUS = 0xFFFF000B
     SYS_MCU_VREF = 0xFFFF000C
     SYS_MCU_TEMP = 0xFFFF000D
-    SYS_FW_VER_BT = 0xFFFF010
+    SYS_FW_VER_BT = 0xFFFF0010
 
     def __int__(self) -> int:
         return self.value
@@ -436,8 +464,12 @@ class COMMAND(Enum):
     WR_VIRT_STRING = 0x0827
     RD_VIRT_SFR_BATCH = 0x082A
     WR_VIRT_SFR_BATCH = 0x082B
+    RD_VIRT_STRING_BATCH = 0x082C
+    WR_VIRT_STRING_BATCH = 0x082D
     RD_FLASH = 0x081C
+    RD_FLASH_AREA = 0x081C  # alias, matches the Android app's naming
     SET_TIME = 0x0A04
+    SET_BT_EXCHANGE_ID = 0x0903
 
     def __int__(self) -> int:
         return self.value
