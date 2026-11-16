@@ -299,6 +299,7 @@ class VSFR(Enum):
     CR_UNITS = 0x8013
     DS_LEV1_uR = 0x8014
     DS_LEV2_uR = 0x8015
+    TEMP_UNITS = 0x8016
 
     CPS = 0x8020
     DR_uR_h = 0x8021
