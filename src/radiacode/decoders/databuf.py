@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 
 from radiacode.bytes_buffer import BytesBuffer
-from radiacode.types import DoseCounter, DoseRateDB, Event, EventId, RareData, RawData, RealTimeData
+from radiacode.types import DoseRateDB, Event, EventId, RareData, RawData, RealTimeData
 
 # Alarm / off-scale events carry an extra rate + error field after the usual
 # event header (ev, mask, flags).  Count-rate events carry a count rate, the
