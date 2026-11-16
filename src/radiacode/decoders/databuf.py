@@ -3,7 +3,22 @@ from __future__ import annotations
 import datetime
 
 from radiacode.bytes_buffer import BytesBuffer
-from radiacode.types import DoseRateDB, Event, EventId, RareData, RawData, RealTimeData
+from radiacode.types import DoseCounter, DoseRateDB, Event, EventId, RareData, RawData, RealTimeData
+
+# Alarm / off-scale events carry an extra rate + error field after the usual
+# event header (ev, mask, flags).  Count-rate events carry a count rate, the
+# others carry a dose rate.
+_RATE_EVENTS = {
+    EventId.DOSE_RATE_ALARM1: 'dose',
+    EventId.DOSE_RATE_ALARM2: 'dose',
+    EventId.DOSE_RATE_OFFSCALE: 'dose',
+    EventId.DOSE_ALARM1: 'dose',
+    EventId.DOSE_ALARM2: 'dose',
+    EventId.DOSE_OFFSCALE: 'dose',
+    EventId.COUNT_RATE_ALARM1: 'count',
+    EventId.COUNT_RATE_ALARM2: 'count',
+    EventId.COUNT_RATE_OFFSCALE: 'count',
+}
 
 
 def decode_VS_DATA_BUF(

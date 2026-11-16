@@ -27,6 +27,7 @@ from radiacode.types import (
     AlarmLimits,
     DisplayDirection,
     DoseRateDB,
+    DoseCounter,
     Event,
     RareData,
     RawData,
